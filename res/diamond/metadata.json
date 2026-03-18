@@ -1,0 +1,24 @@
+{
+  "name": "diamond node",
+  "symbol": "diamond",
+  "description": "diamond node nft",
+  "image": "https://pinpet.mypinata.cloud/ipfs/bafkreid5wf7suohjuq6st5s5d7xmvwc6dfswyp3qmsv3l7biwygt3aleoi",
+  "animation_url": "",
+  "external_url": "",
+  "attributes": [
+  ],
+  "collection": {
+    "name": "Vela Diamond Collection",
+    "family": ""
+  },
+  "properties": {
+    "files": [
+      {
+        "uri": "https://pinpet.mypinata.cloud/ipfs/bafkreid5wf7suohjuq6st5s5d7xmvwc6dfswyp3qmsv3l7biwygt3aleoi",
+        "type": "image/png"
+      }
+    ],
+    "category": "image/png",
+    "maxSupply": 500
+  }
+}

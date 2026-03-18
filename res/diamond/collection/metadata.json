@@ -1,0 +1,31 @@
+{
+  "name": "Vela Diamond Collection",
+  "symbol": "VDLC",
+  "description": "Diamond Node NFT Collection from Vela Anchor program",
+  "image": "ipfs://QmP13...123/collection-image.png",
+  "external_url": "https://vela-anchor.io",
+  "attributes": [
+    {
+      "trait_type": "Collection Type",
+      "value": "Diamond Nodes"
+    },
+    {
+      "trait_type": "Max Supply",
+      "value": "500"
+    }
+  ],
+  "collection": {
+    "name": "Vela Diamond Collection",
+    "family": "Vela Anchor"
+  },
+  "properties": {
+    "files": [
+      {
+        "uri": "ipfs://QmP13...123/collection-image.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "maxSupply": 500
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "gold node",
+  "symbol": "gold",
+  "description": "Vela Gold Collection",
+  "image": "https://pinpet.mypinata.cloud/ipfs/bafkreid4fsgk2p7von7ohp3ozqms65rlda5uso4t2ony7ljtyhlisrvkjm",
+  "animation_url": "",
+  "external_url": "",
+  "attributes": [
+  ],
+  "collection": {
+    "name": "Vela Gold Collection",
+    "family": ""
+  },
+  "properties": {
+    "files": [
+      {
+        "uri": "https://pinpet.mypinata.cloud/ipfs/bafkreid4fsgk2p7von7ohp3ozqms65rlda5uso4t2ony7ljtyhlisrvkjm",
+        "type": "image/png"
+      }
+    ],
+    "category": "image/png",
+    "maxSupply": 10000
+  }
+}

@@ -1,0 +1,26 @@
+
+
+	
+gold.png
+https://pinpet.mypinata.cloud/ipfs/bafkreid4fsgk2p7von7ohp3ozqms65rlda5uso4t2ony7ljtyhlisrvkjm
+CID: bafkreid4fsgk2p7von7ohp3ozqms65rlda5uso4t2ony7ljtyhlisrvkjm
+
+
+	
+diamond.png
+https://pinpet.mypinata.cloud/ipfs/bafkreid5wf7suohjuq6st5s5d7xmvwc6dfswyp3qmsv3l7biwygt3aleoi
+CID: bafkreid5wf7suohjuq6st5s5d7xmvwc6dfswyp3qmsv3l7biwygt3aleoi
+
+
+
+
+diamond-collection metadata.json https://pinpet.mypinata.cloud/ipfs/bafkreiboxkjnqmzy3zq3tqgelequecfr54wthcoyfihnzd5yh5w4p274hm
+diamond-nft metadata.json https://pinpet.mypinata.cloud/ipfs/bafkreihr6qsedspgklmba54pdzfa5bukkefb6m6b5molvtojzls25ngdam
+
+gold-collection metadata.json https://pinpet.mypinata.cloud/ipfs/bafkreiewinjwaaggy7v2zemlo72lxtvsie6r7zped3qbrasaauuokgigqi
+gold-nft metadata.json https://pinpet.mypinata.cloud/ipfs/bafkreiff4fszwtvacbsvcyozbroeveprfvnym3athu5hlu4znaci4aik5i
+
+
+
+
+

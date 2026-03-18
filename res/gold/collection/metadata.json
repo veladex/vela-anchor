@@ -1,0 +1,31 @@
+{
+  "name": "Vela Gold Collection",
+  "symbol": "VDLC",
+  "description": "Gold Node NFT Collection from Vela Anchor program",
+  "image": "https://pinpet.mypinata.cloud/ipfs/bafkreid4fsgk2p7von7ohp3ozqms65rlda5uso4t2ony7ljtyhlisrvkjm",
+  "external_url": "https://vela-anchor.io",
+  "attributes": [
+    {
+      "trait_type": "Collection Type",
+      "value": "Gold Nodes"
+    },
+    {
+      "trait_type": "Max Supply",
+      "value": "10000"
+    }
+  ],
+  "collection": {
+    "name": "Vela Gold Collection",
+    "family": "Vela Anchor"
+  },
+  "properties": {
+    "files": [
+      {
+        "uri": "https://pinpet.mypinata.cloud/ipfs/bafkreid4fsgk2p7von7ohp3ozqms65rlda5uso4t2ony7ljtyhlisrvkjm",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "maxSupply": 10000
+  }
+}
