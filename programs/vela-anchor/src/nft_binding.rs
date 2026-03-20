@@ -4,7 +4,7 @@ use crate::constants::*;
 use crate::errors::{BindingError, TokenReleaseError};
 use crate::structs::*;
 use crate::events::*;
-use crate::contexts::{BindNft, VerifyBinding, RebindNft, ClaimReleasedTokens, QueryReleasableTokens};
+use crate::contexts::{BindNft, VerifyBinding, RebindNft, UnbindNft, ClaimReleasedTokens, QueryReleasableTokens};
 
 // ============================================================================
 // Helper functions
@@ -163,6 +163,52 @@ pub fn handler_bind_nft(
     Ok(())
 }
 
+/// Handler for unbind_nft instruction
+/// Allows a user to clear their NFT binding when they no longer hold the NFT
+pub fn handler_unbind_nft(ctx: Context<UnbindNft>) -> Result<()> {
+    let user = &ctx.accounts.user;
+    let user_state = &mut ctx.accounts.user_state;
+    let nft_binding_state = &mut ctx.accounts.nft_binding_state;
+    let user_token_account = &ctx.accounts.user_token_account;
+
+    // 1. Confirm user_state has an active binding
+    require!(
+        user_state.bound_nft_mint != Pubkey::default(),
+        BindingError::BindingNotFound
+    );
+
+    // 2. Confirm nft_binding_state corresponds to the bound NFT
+    require!(
+        nft_binding_state.nft_mint == user_state.bound_nft_mint,
+        BindingError::BindingNotFound
+    );
+
+    // 3. Confirm nft_binding_state owner is the current user
+    require!(
+        nft_binding_state.owner == user.key(),
+        BindingError::NotNftOwner
+    );
+
+    // 4. Verify user no longer holds the NFT (amount must be 0)
+    require!(
+        user_token_account.amount == 0,
+        BindingError::OwnerStillHoldsNft
+    );
+
+    // 5. Clear UserState binding
+    let nft_mint = user_state.bound_nft_mint;
+    user_state.bound_nft_mint = Pubkey::default();
+
+    // Note: Do NOT clear nft_binding_state.owner here.
+    // rebind_nft context derives old_owner_state PDA from nft_binding_state.owner,
+    // so we must keep it to allow future rebind by the new NFT holder.
+    // The cleared user_state.bound_nft_mint is sufficient to indicate unbind.
+
+    msg!("NFT unbound by user: user={}, nft_mint={}", user.key(), nft_mint);
+
+    Ok(())
+}
+
 /// Handler for verify_binding instruction
 pub fn handler_verify_binding(
     ctx: Context<VerifyBinding>,
@@ -270,7 +316,12 @@ pub fn handler_rebind_nft(
     }
 
     // 6. Clear old owner's UserState
-    old_owner_state.bound_nft_mint = Pubkey::default();
+    // Only clear if old owner's bound_nft_mint still points to THIS NFT.
+    // If old owner has already unbound (via unbind_nft) and rebound to a different NFT,
+    // we must NOT overwrite their new binding.
+    if old_owner_state.bound_nft_mint == nft_mint.key() {
+        old_owner_state.bound_nft_mint = Pubkey::default();
+    }
 
     // 7. Update new owner's UserState
     user_state.bound_nft_mint = nft_mint.key();

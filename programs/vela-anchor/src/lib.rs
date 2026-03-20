@@ -166,6 +166,13 @@ pub mod vela_anchor {
         nft_binding::handler_verify_binding(ctx)
     }
 
+    /// Unbind NFT (when user no longer holds the NFT)
+    pub fn unbind_nft(
+        ctx: Context<UnbindNft>,
+    ) -> Result<()> {
+        nft_binding::handler_unbind_nft(ctx)
+    }
+
     /// Rebind NFT to new owner
     pub fn rebind_nft(
         ctx: Context<RebindNft>,

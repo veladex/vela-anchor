@@ -7,7 +7,7 @@ use crate::{
     events::NodePoolRefreshed,
 };
 
-/// Determine level (L0~L7) based on self_staked and total_staked 
+/// Determine level (L0~L7) based on self_staked and total_staked
 ///
 /// Returns the highest level whose requirements are met, checking from L7 downward
 pub fn determine_level(self_staked: u64, total_staked: u64) -> u8 {

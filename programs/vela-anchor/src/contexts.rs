@@ -760,6 +760,36 @@ pub struct RebindNft<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Context for unbind_nft instruction
+#[derive(Accounts)]
+pub struct UnbindNft<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    /// User state PDA
+    #[account(
+        mut,
+        seeds = [USER_STATE_SEED, user.key().as_ref()],
+        bump = user_state.bump
+    )]
+    pub user_state: Account<'info, UserState>,
+
+    /// NFT binding state PDA (verified via seeds derived from user_state.bound_nft_mint)
+    #[account(
+        mut,
+        seeds = [NFT_BINDING_SEED, user_state.bound_nft_mint.as_ref()],
+        bump = nft_binding_state.bump
+    )]
+    pub nft_binding_state: Account<'info, NftBindingState>,
+
+    /// User's old NFT token account (to prove user no longer holds the NFT)
+    #[account(
+        token::mint = user_state.bound_nft_mint,
+        token::authority = user
+    )]
+    pub user_token_account: Account<'info, TokenAccount>,
+}
+
 /// Context for claim_released_tokens instruction
 #[derive(Accounts)]
 pub struct ClaimReleasedTokens<'info> {
