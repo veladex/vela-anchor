@@ -32,6 +32,9 @@ pub const GOLD_BOOST_PERCENTAGE: u8 = 10;
 pub const REFERRAL_MANAGER_SEED: &[u8] = b"referral_manager";
 pub const REFERRAL_STORAGE_SEED: &[u8] = b"referral_storage";
 
+/// Referral 注册费（0.01 SOL = 10_000_000 lamports）
+pub const REFERRAL_REGISTRATION_FEE: u64 = 10_000_000;
+
 
 // ============================================================================
 // Staking related constants
@@ -47,8 +50,8 @@ pub const SECONDS_PER_DAY: u32 = 10;  // Can be changed to 30 for debugging
 /// Test env: can be changed to 5 for easy debugging
 pub const SECONDS_PER_HOUR: u32 = 5;  // Can be changed to 5 for debugging
 
-/// Max simultaneous staking count per user (reduced to 15 to avoid stack overflow)
-pub const MAX_STAKES_PER_USER: usize = 15;
+/// Max simultaneous staking count per user
+pub const MAX_STAKES_PER_USER: usize = 20;
 
 /// Minimum stake amount (1,000 tokens, assuming 9 decimal places)
 pub const MIN_STAKE_AMOUNT: u64 = 1_000_000_000_000;
@@ -141,9 +144,10 @@ pub const UPDATE_LEVEL_NUM: u32 = 60;
 pub const REFERRAL_UPDATE_LEVELS: u32 = 50;
 
 /// Staking order status constants
-pub const ORDER_STATUS_ACTIVE: u8 = 0;
-pub const ORDER_STATUS_COMPLETED: u8 = 1;
-pub const ORDER_STATUS_CANCELLED: u8 = 2;
+pub const ORDER_STATUS_EMPTY: u8 = 0;      // 空槽位（与 Default 零值一致）
+pub const ORDER_STATUS_ACTIVE: u8 = 1;
+pub const ORDER_STATUS_COMPLETED: u8 = 2;
+pub const ORDER_STATUS_CANCELLED: u8 = 3;
 
 // ============================================================================
 // Locked Token Vault related constants
@@ -244,7 +248,8 @@ pub const ROOT_REFERRAL_ID: u32 = 1_000_000;
 // ============ Daily deposit cap constants ============
 
 /// Real seconds per day (used for daily quota calculation, independent from interest rate SECONDS_PER_DAY)
-pub const REAL_SECONDS_PER_DAY: u64 = 86400;
+/// Production: 86400 (24 * 60 * 60)
+pub const REAL_SECONDS_PER_DAY: u64 = 10;  // Test env: 10s per day, production: 86400
 
 /// Initial daily deposit cap: 3 million tokens (9 decimals)
 pub const INITIAL_DAILY_DEPOSIT_CAP: u64 = 3_000_000_000_000_000; // 3M * 10^9
@@ -287,7 +292,10 @@ pub const DIAMOND_POOL_SHARES: u64 = 600;
 pub const GOLD_POOL_SHARES: u64 = 12_000;
 
 /// Seconds per week (real time, not shortened)
-pub const SECONDS_PER_WEEK: i64 = 7 * 86400; // 604800
+pub const SECONDS_PER_WEEK: i64 = 10; // 7 * 86400; // 604800
+
+/// Max weeks to process in a single refresh (防止 CU 溢出)
+pub const MAX_WEEKS_PER_REFRESH: u64 = 52;
 
 /// Week epoch offset (1970-01-05 Monday 00:00 UTC)
 pub const WEEK_EPOCH_OFFSET: i64 = 345600;

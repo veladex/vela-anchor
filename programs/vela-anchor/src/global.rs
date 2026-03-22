@@ -43,6 +43,10 @@ pub struct InitializeGlobal<'info> {
     )]
     pub global_state: Account<'info, GlobalState>,
 
+    /// 推荐人注册费的专用收款钱包（普通 SOL 钱包，由管理员指定）
+    /// CHECK: 此账户仅用于存储地址，不做额外校验
+    pub referral_fee_wallet: UncheckedAccount<'info>,
+
     // ============ System programs ============
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -102,6 +106,9 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
     global_state.today_staked_amount = 0;
     global_state.last_7days_staked = [0; 7];
 
+    // Initialize referral fee wallet
+    global_state.referral_fee_wallet = ctx.accounts.referral_fee_wallet.key();
+
     // 4. Compute and write the 9 ReferralStorage PDA addresses
     // find_program_address is called only once during initialization; subsequent validation is purely key comparison
     for i in 0u8..9u8 {
@@ -123,6 +130,7 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
     msg!("GlobalState PDA bump: {}", global_state.bump);
     msg!("LockedVault PDA bump: {}", locked_vault.bump);
     msg!("9 storage PDA addresses written to GlobalState");
+    msg!("Referral fee wallet: {}", global_state.referral_fee_wallet);
     msg!("========================================");
 
     Ok(())

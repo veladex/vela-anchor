@@ -5,7 +5,7 @@ use crate::{
     errors::ReferralError,
     events::ReferralBindingEvent,
     referral_utils,
-    constants::REFERRAL_UPDATE_LEVELS,
+    constants::{REFERRAL_UPDATE_LEVELS, REFERRAL_REGISTRATION_FEE},
 };
 
 /// Get total referral count in the system
@@ -43,13 +43,11 @@ fn verify_referral_exists(
     accounts: &AddReferral,
     program_id: &Pubkey,
 ) -> Result<bool> {
-    // Decode ID to get PDA index and slot index
-    let (pda_index, slot_index) = ReferralStorage::decode_id(referral_id);
-
-    // Verify PDA index range
-    if pda_index < 1 || pda_index > 9 {
-        return Ok(false);
-    }
+    // Safe decode with canonical validation
+    let (pda_index, slot_index) = match ReferralStorage::decode_and_validate_id(referral_id) {
+        Ok(result) => result,
+        Err(_) => return Ok(false),  // non-canonical ID treated as non-existent
+    };
 
     // Get the corresponding storage account
     let storage_accounts = [
@@ -231,6 +229,22 @@ pub fn handler_add_referral(
 
     let clock = Clock::get()?;
 
+    // ============== 收取推荐人注册费（0.01 SOL） ==============
+    let transfer_ix = anchor_lang::solana_program::system_instruction::transfer(
+        &ctx.accounts.wallet_signer.key(),
+        &ctx.accounts.referral_fee_wallet.key(),
+        REFERRAL_REGISTRATION_FEE,
+    );
+    anchor_lang::solana_program::program::invoke(
+        &transfer_ix,
+        &[
+            ctx.accounts.wallet_signer.to_account_info(),
+            ctx.accounts.referral_fee_wallet.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+    )?;
+    msg!("Referral registration fee paid: {} lamports", REFERRAL_REGISTRATION_FEE);
+
     // ============== New: Root node uniqueness check ==============
     if parent_id == 0 {
         // parent_id=0 means to become a root node
@@ -287,14 +301,10 @@ pub fn handler_add_referral(
         &ctx.accounts.storage_9,
     ];
 
-    // Iterate through all PDAs (1-9) to find the first one with space
-    let mut used_idx: u8 = 0;
-    let mut storage_account = None;
-
+    // Pre-validate all 9 storage PDAs before searching for space
+    // This ensures all passed accounts are legitimate even if storage_1 still has space
     for idx in 1u8..=9u8 {
         let account = storage_accounts[(idx - 1) as usize];
-
-        // Verify PDA
         let (expected_pda, _bump) = Pubkey::find_program_address(
             &[ReferralStorage::SEED_PREFIX, &[idx]],
             ctx.program_id,
@@ -302,8 +312,16 @@ pub fn handler_add_referral(
         require_keys_eq!(
             account.key(),
             expected_pda,
-            ReferralError::InvalidPdaIndex
+            ReferralError::InvalidStoragePDA
         );
+    }
+
+    // Find the first storage with space (PDAs already validated above)
+    let mut used_idx: u8 = 0;
+    let mut storage_account = None;
+
+    for idx in 1u8..=9u8 {
+        let account = storage_accounts[(idx - 1) as usize];
 
         // Check if there is space (only read count field)
         let has_space = {
@@ -399,7 +417,7 @@ pub fn handler_add_referral(
         Pubkey::default()
     } else {
         // Query parent's wallet address using zero-copy storage
-        let (parent_pda_index, parent_slot_index) = ReferralStorage::decode_id(parent_id);
+        let (parent_pda_index, parent_slot_index) = ReferralStorage::decode_and_validate_id(parent_id)?;
         let parent_storage_account = storage_accounts[(parent_pda_index - 1) as usize];
         let parent_storage_data = parent_storage_account.try_borrow_data()?;
 
@@ -446,13 +464,7 @@ pub fn handler_get_referral(
     referral_id: u32,
 ) -> Result<ReferralData> {
     // Decode ID to get PDA index and slot index
-    let (pda_index, slot_index) = ReferralStorage::decode_id(referral_id);
-
-    // Verify PDA index range
-    require!(
-        pda_index >= 1 && pda_index <= 9,
-        ReferralError::InvalidPdaIndex
-    );
+    let (pda_index, slot_index) = ReferralStorage::decode_and_validate_id(referral_id)?;
 
     // Get all storage accounts
     let storage_accounts = [
@@ -576,14 +588,14 @@ pub fn handler_get_wallet_info(
     msg!("Found wallet mapping: {} -> {}", wallet, referral_id);
 
     // Step 2: Get ReferralData using referral_id
-    // Decode ID to get PDA index and slot index
-    let (pda_index, slot_index) = ReferralStorage::decode_id(referral_id);
-
-    // Verify PDA index range
-    if pda_index < 1 || pda_index > 9 {
-        msg!("Invalid PDA index: {}", pda_index);
-        return Ok(None);
-    }
+    // Safe decode with canonical validation
+    let (pda_index, slot_index) = match ReferralStorage::decode_and_validate_id(referral_id) {
+        Ok(result) => result,
+        Err(_) => {
+            msg!("Invalid referral_id: {}", referral_id);
+            return Ok(None);
+        }
+    };
 
     // Get all storage accounts
     let storage_accounts = [
@@ -635,13 +647,24 @@ pub fn handler_get_wallet_info(
         Pubkey::default()
     } else {
         // Query parent's wallet address
-        let (parent_pda_index, parent_slot_index) = ReferralStorage::decode_id(referral.parent_id);
+        // Safe decode with canonical validation
+        let (parent_pda_index, parent_slot_index) = match ReferralStorage::decode_and_validate_id(referral.parent_id) {
+            Ok(result) => result,
+            Err(_) => {
+                msg!("Invalid parent PDA index from parent_id: {}", referral.parent_id);
+                return Ok(Some(WalletInfoResult {
+                    wallet: referral.wallet,
+                    referral_id,
+                    parent_id: referral.parent_id,
+                    parent_wallet: Pubkey::default(),
+                    created_at: referral.created_at,
+                    total_referrals: referral.total_referrals,
+                    total_staked: referral.total_staked,
+                }));
+            }
+        };
 
-        // Verify parent PDA index range
-        if parent_pda_index < 1 || parent_pda_index > 9 {
-            msg!("Invalid parent PDA index: {}", parent_pda_index);
-            Pubkey::default()
-        } else {
+        {
             let parent_storage_account = storage_accounts[(parent_pda_index - 1) as usize];
             let parent_storage_data = parent_storage_account.try_borrow_data()?;
 

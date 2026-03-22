@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+use crate::constants::MAX_STAKES_PER_USER;
+use crate::errors::ReferralError;
 
 // ============================================================================
 // Referral related data structures
@@ -13,7 +15,7 @@ pub struct ReferralData {
     pub parent_id: u32,
     /// Timestamp of creation
     pub created_at: i64,
-    /// Total number of downline referrals (including self)
+    /// Total number of downline referrals (excluding self)
     pub total_referrals: u32,
     /// Total staked amount of downline (including self, in tokens)
     pub total_staked: u64,
@@ -43,7 +45,7 @@ pub struct WalletInfoResult {
     pub parent_wallet: Pubkey,
     /// Timestamp of creation
     pub created_at: i64,
-    /// Total number of downline referrals (including self)
+    /// Total number of downline referrals (excluding self)
     pub total_referrals: u32,
     /// Total staked amount of downline (including self, in tokens)
     pub total_staked: u64,
@@ -87,11 +89,35 @@ impl ReferralStorage {
         (self.index as u32) * 1_000_000 + self.count
     }
 
-    /// Decode ID to get PDA index and slot index
+    /// Decode ID to get PDA index and slot index (safe version)
     pub fn decode_id(id: u32) -> (u8, u32) {
-        let pda_index = (id / 1_000_000) as u8;
+        let quotient = id / 1_000_000;  // keep as u32, no truncation
         let slot_index = id % 1_000_000;
-        (pda_index, slot_index)
+        (quotient as u8, slot_index)  // caller must validate
+    }
+
+    /// Decode referral_id and validate it is canonical
+    /// Returns (pda_index, slot_index), guaranteed canonical and in valid range
+    pub fn decode_and_validate_id(id: u32) -> Result<(u8, u32)> {
+        let quotient = id / 1_000_000;  // keep as u32, no truncation
+        let slot_index = id % 1_000_000;
+
+        // 1. Validate range at u32 level to prevent false positives after truncation
+        if quotient < 1 || quotient > 9 {
+            msg!("Invalid pda_index {} decoded from referral_id {}", quotient, id);
+            return Err(ReferralError::InvalidPdaIndex.into());
+        }
+
+        let pda_index = quotient as u8;  // safe cast: confirmed 1..=9
+
+        // 2. Reverse encoding check: ensure the ID is in canonical form
+        let reconstructed = (pda_index as u32) * 1_000_000 + slot_index;
+        if reconstructed != id {
+            msg!("Non-canonical referral_id: {} != reconstructed {}", id, reconstructed);
+            return Err(ReferralError::InvalidPdaIndex.into());
+        }
+
+        Ok((pda_index, slot_index))
     }
 
     /// Check if there is still space
@@ -423,14 +449,16 @@ pub struct GlobalState {
     /// Last 7 days staked amounts (fixed index array)
     /// [0] = 7 days ago, [1] = 6 days ago, ..., [6] = today (real-time updated)
     pub last_7days_staked: [u64; 7],            // 56 bytes (7 * 8)
+    /// 推荐人绑定时的专用 SOL 收款地址（用于收取注册费，防 Sybil 攻击）
+    pub referral_fee_wallet: Pubkey,            // 32 bytes
 }
 
 impl GlobalState {
     /// PDA seed prefix
     pub const SEED_PREFIX: &'static [u8] = b"global_state";
 
-    /// Account size: 8 (discriminator) + 32 + 32 + 8 + 8 + 8 + 1 + 7 + 288 + 8 + 2 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 2 + 2 + 8 + 8 + 56 = 542 bytes
-    pub const SIZE: usize = 542;
+    /// Account size: 8 (discriminator) + 32 + 32 + 8 + 8 + 8 + 1 + 7 + 288 + 8 + 2 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 2 + 2 + 8 + 8 + 56 + 32 = 574 bytes
+    pub const SIZE: usize = 574;
 }
 
 // ============================================================================
@@ -456,7 +484,7 @@ pub struct StakeOrder {
     /// CI-08: Cumulative total pre-tax interest claimed (including NFT boost)
     /// On each claim/unstake: += total_interest (base + boost)
     pub claimed_interest: u64,          // 8 bytes
-    /// Order status (0=active, 1=completed, 2=cancelled)
+    /// Order status (0=empty, 1=active, 2=completed, 3=cancelled)
     pub status: u8,                     // 1 byte
     /// Initial daily interest rate at order creation time (in RATE_BASIS_POINTS, 1_000_000 = 100%)
     /// e.g. 7-day: 5000 (0.5%), 30-day: 7000 (0.7%), 90-day: 10000 (1.0%)
@@ -486,16 +514,16 @@ pub struct UserStakeAccount {
     pub bump: u8,                               // 1 byte
     /// Reserved field
     pub reserved: [u8; 6],                      // 6 bytes
-    /// Staking orders array (fixed 15 slots to avoid stack overflow)
-    pub orders: [StakeOrder; 15],               // 15 × 64 = 960 bytes
+    /// Staking orders array (fixed MAX_STAKES_PER_USER slots)
+    pub orders: [StakeOrder; MAX_STAKES_PER_USER],  // 50 × 64 = 3200 bytes
 }
 
 impl UserStakeAccount {
     /// PDA seed prefix
     pub const SEED_PREFIX: &'static [u8] = b"user_stake";
 
-    /// Account size: 8 (discriminator) + 32 + 1 + 8 + 8 + 1 + 6 + 960 = 1024 bytes
-    pub const SIZE: usize = 8 + 32 + 1 + 8 + 8 + 1 + 6 + 960;
+    /// Account size: 8 (discriminator) + 32 + 1 + 8 + 8 + 1 + 6 + (MAX_STAKES_PER_USER × 64)
+    pub const SIZE: usize = 8 + 32 + 1 + 8 + 8 + 1 + 6 + MAX_STAKES_PER_USER * StakeOrder::SIZE;
 }
 
 // ============================================================================

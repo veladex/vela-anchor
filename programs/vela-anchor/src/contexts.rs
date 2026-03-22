@@ -22,7 +22,7 @@ pub struct CreateDiamondCollection<'info> {
         seeds = [b"collection_authority"],
         bump
     )]
-    /// CHECK: PDA used as collection authority
+    /// CHECK: VEL-08 legacy PDA, not used by any instruction logic; actual authority is payer (hardcoded admin address)
     pub collection_authority: UncheckedAccount<'info>,
 
     #[account(
@@ -76,7 +76,7 @@ pub struct CreateGoldCollection<'info> {
         seeds = [b"collection_authority"],
         bump
     )]
-    /// CHECK: PDA used as collection authority
+    /// CHECK: VEL-08 legacy PDA, not used by any instruction logic; actual authority is payer (hardcoded admin address)
     pub collection_authority: UncheckedAccount<'info>,
 
     #[account(
@@ -458,7 +458,8 @@ pub struct AddReferral<'info> {
     pub payer: Signer<'info>,
 
     /// Wallet owner must sign to prove ownership, prevents frontrunning attacks
-    #[account(constraint = wallet_signer.key() == wallet @ ReferralError::WalletOwnerMismatch)]
+    /// mut: needed because registration fee is deducted from this account
+    #[account(mut, constraint = wallet_signer.key() == wallet @ ReferralError::WalletOwnerMismatch)]
     pub wallet_signer: Signer<'info>,
 
     #[account(
@@ -514,6 +515,22 @@ pub struct AddReferral<'info> {
         bump
     )]
     pub wallet_mapping: Account<'info, WalletIdMapping>,
+
+    /// 全局状态（读取 referral_fee_wallet 地址）
+    #[account(
+        seeds = [GlobalState::SEED_PREFIX],
+        bump = global_state.bump,
+    )]
+    pub global_state: Account<'info, GlobalState>,
+
+    /// 推荐人注册费收款钱包（必须与 global_state.referral_fee_wallet 一致）
+    /// CHECK: 通过与 global_state.referral_fee_wallet 比较来校验
+    #[account(
+        mut,
+        constraint = referral_fee_wallet.key() == global_state.referral_fee_wallet
+            @ ReferralError::InvalidFeeWallet
+    )]
+    pub referral_fee_wallet: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -903,7 +920,7 @@ pub struct CreateStake<'info> {
         constraint = user_token_account.owner == user.key() @ StakeError::Unauthorized,
         constraint = user_token_account.mint == global_state.stake_token_mint @ StakeError::TokenMintMismatch
     )]
-    pub user_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: Box<Account<'info, TokenAccount>>,
 
     /// locked_vault PDA (for validation)
     /// CHECK: Seeds validation moved to handler to reduce stack usage
@@ -915,7 +932,7 @@ pub struct CreateStake<'info> {
         mut,
         constraint = vault_token_account.key() == locked_vault.vault_token_account @ StakeError::InvalidLockedVault
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
     // Referral system related accounts
     /// User wallet ID mapping (must exist, proves user has bound referrer)
@@ -955,15 +972,15 @@ pub struct CreateStake<'info> {
 
     /// User state account (optional, used to query bound NFT)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub user_state: Option<Account<'info, UserState>>,
+    pub user_state: Option<Box<Account<'info, UserState>>>,
 
     /// NFT binding state account (optional, used to query node type)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub nft_binding_state: Option<Account<'info, NftBindingState>>,
+    pub nft_binding_state: Option<Box<Account<'info, NftBindingState>>>,
 
     /// User's NFT token account (optional, used to verify NFT ownership)
     /// Note: Constraints removed because they cause access violations when Option is None
-    pub user_nft_account: Option<Account<'info, TokenAccount>>,
+    pub user_nft_account: Option<Box<Account<'info, TokenAccount>>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -1008,7 +1025,7 @@ pub struct ClaimInterest<'info> {
         mut,
         constraint = vault_token_account.key() == locked_vault.vault_token_account @ StakeError::InvalidLockedVault
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
     /// Dead address token account (receives interest tax)
     #[account(
@@ -1016,7 +1033,7 @@ pub struct ClaimInterest<'info> {
         constraint = dead_address_token_account.owner == dead_address_pubkey() @ StakeError::InvalidDeadAddress,
         constraint = dead_address_token_account.mint == global_state.stake_token_mint @ StakeError::TokenMintMismatch
     )]
-    pub dead_address_token_account: Account<'info, TokenAccount>,
+    pub dead_address_token_account: Box<Account<'info, TokenAccount>>,
 
     // Referral system related accounts (used for community reward distribution)
     /// User wallet ID mapping (must exist)
@@ -1056,15 +1073,15 @@ pub struct ClaimInterest<'info> {
 
     /// User state account (optional, used to query bound NFT)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub user_state: Option<Account<'info, UserState>>,
+    pub user_state: Option<Box<Account<'info, UserState>>>,
 
     /// NFT binding state account (optional, used to query node type)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub nft_binding_state: Option<Account<'info, NftBindingState>>,
+    pub nft_binding_state: Option<Box<Account<'info, NftBindingState>>>,
 
     /// User's NFT token account (optional, used to verify NFT ownership)
     /// Note: Constraints removed because they cause access violations when Option is None
-    pub user_nft_account: Option<Account<'info, TokenAccount>>,
+    pub user_nft_account: Option<Box<Account<'info, TokenAccount>>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -1085,15 +1102,15 @@ pub struct QueryPendingInterest<'info> {
 
     /// User state account (optional, used to query bound NFT)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub user_state: Option<Account<'info, UserState>>,
+    pub user_state: Option<Box<Account<'info, UserState>>>,
 
     /// NFT binding state account (optional, used to query node type)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub nft_binding_state: Option<Account<'info, NftBindingState>>,
+    pub nft_binding_state: Option<Box<Account<'info, NftBindingState>>>,
 
     /// User's NFT token account (optional, used to verify NFT ownership)
     /// Note: Constraints removed because they cause access violations when Option is None
-    pub user_nft_account: Option<Account<'info, TokenAccount>>,
+    pub user_nft_account: Option<Box<Account<'info, TokenAccount>>>,
 }
 /// Unstake (redeem principal + remaining interest) context
 #[derive(Accounts)]
@@ -1134,7 +1151,7 @@ pub struct Unstake<'info> {
         mut,
         constraint = vault_token_account.key() == locked_vault.vault_token_account @ StakeError::InvalidLockedVault
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
     /// Dead address token account (receives interest tax)
     #[account(
@@ -1142,7 +1159,7 @@ pub struct Unstake<'info> {
         constraint = dead_address_token_account.owner == dead_address_pubkey() @ StakeError::InvalidDeadAddress,
         constraint = dead_address_token_account.mint == global_state.stake_token_mint @ StakeError::TokenMintMismatch
     )]
-    pub dead_address_token_account: Account<'info, TokenAccount>,
+    pub dead_address_token_account: Box<Account<'info, TokenAccount>>,
 
     // Referral system related accounts
     /// User wallet ID mapping (must exist)
@@ -1182,15 +1199,15 @@ pub struct Unstake<'info> {
 
     /// User state account (optional, used to query bound NFT)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub user_state: Option<Account<'info, UserState>>,
+    pub user_state: Option<Box<Account<'info, UserState>>>,
 
     /// NFT binding state account (optional, used to query node type)
     /// Note: Seeds constraint removed because it causes access violations when Option is None
-    pub nft_binding_state: Option<Account<'info, NftBindingState>>,
+    pub nft_binding_state: Option<Box<Account<'info, NftBindingState>>>,
 
     /// User's NFT token account (optional, used to verify NFT ownership)
     /// Note: Constraints removed because they cause access violations when Option is None
-    pub user_nft_account: Option<Account<'info, TokenAccount>>,
+    pub user_nft_account: Option<Box<Account<'info, TokenAccount>>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,

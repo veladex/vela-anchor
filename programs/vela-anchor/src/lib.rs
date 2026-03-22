@@ -14,6 +14,8 @@ pub mod zero_copy_storage;
 pub mod locked_vault;
 pub mod nft_binding;
 pub mod global;
+pub mod debug;
+pub mod debug_contexts;
 pub mod stake_token;
 pub mod community_reward;
 pub mod node_pool;
@@ -22,6 +24,7 @@ pub mod node_pool;
 use contexts::*;
 use structs::*;
 use global::*;
+use debug_contexts::*;
 
 declare_id!("7dcorXkE1kJJxvG8rQCLwnFnmdP9BxgGpts31aMAADam");
 
@@ -273,6 +276,15 @@ pub mod vela_anchor {
         ctx: Context<QueryNodePoolReward>,
     ) -> Result<NodePoolRewardResult> {
         node_pool::handler_query_node_pool_reward(ctx)
+    }
+
+    // ========== Debug Functions (测试用，生产环境需移除) ==========
+
+    /// Delete GlobalState + LockedTokenVault + VaultTokenAccount (admin only)
+    pub fn delete_global_state(
+        ctx: Context<DeleteGlobalState>,
+    ) -> Result<()> {
+        debug::handler_delete_global_state(ctx)
     }
 
 }

@@ -26,7 +26,7 @@ pub fn handler_claim_node_pool_reward(
 
     // ========== 1. Cross-week detection & refresh ==========
     // Static assertion: ensure ROOT_REFERRAL_ID maps to pda_index=1, i.e. storage_accounts[0]
-    debug_assert_eq!(ReferralStorage::decode_id(ROOT_REFERRAL_ID).0, 1);
+    debug_assert_eq!(ReferralStorage::decode_and_validate_id(ROOT_REFERRAL_ID).unwrap().0, 1);
     let storage_accounts: [&AccountInfo; 1] = [
         &ctx.accounts.referral_storage_1,
     ];

@@ -408,12 +408,7 @@ pub fn handler_claim_released_tokens(
         .checked_add(releasable_amount)
         .ok_or(ProgramError::ArithmeticOverflow)?;
 
-    // 9. Update locked vault
-    locked_vault.total_locked = locked_vault.total_locked
-        .checked_sub(releasable_amount)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-
-    // 10. Emit event
+    // 9. Emit event
     emit!(TokensClaimedEvent {
         user: user.key(),
         nft_mint: nft_mint.key(),

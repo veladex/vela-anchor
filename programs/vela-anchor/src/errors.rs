@@ -53,6 +53,9 @@ pub enum ReferralError {
 
     #[msg("Wallet signer does not match the wallet parameter")]
     WalletOwnerMismatch,
+
+    #[msg("Invalid referral fee wallet address")]
+    InvalidFeeWallet,
 }
 
 // ============================================================================
@@ -141,7 +144,7 @@ pub enum StakeError {
     InvalidAmount,
     #[msg("Stake amount must be a whole number (no decimals)")]
     AmountMustBeWholeNumber,
-    #[msg("Maximum stake orders reached (15)")]
+    #[msg("Maximum stake orders reached (20)")]
     MaxStakesReached,
     #[msg("Order not found or invalid index")]
     InvalidOrderIndex,

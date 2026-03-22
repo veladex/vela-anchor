@@ -68,13 +68,7 @@ where
         visited_ids.push(current_parent_id);
 
         // Decode ID to get PDA index and slot index
-        let (pda_index, slot_index) = ReferralStorage::decode_id(current_parent_id);
-
-        // Validate PDA index range
-        if pda_index < 1 || pda_index > 9 {
-            msg!("Invalid PDA index {} at depth {}, stopping traversal", pda_index, depth);
-            break;
-        }
+        let (pda_index, slot_index) = ReferralStorage::decode_and_validate_id(current_parent_id)?;
 
         // Get the corresponding storage account
         let storage_account = storage_accounts[(pda_index - 1) as usize];
@@ -86,8 +80,8 @@ where
         );
 
         if storage_account.key() != expected_pda {
-            msg!("PDA verification failed at depth {}, stopping traversal", depth);
-            break;
+            msg!("PDA verification failed at depth {}", depth);
+            return Err(ReferralError::InvalidPdaIndex.into());
         }
 
         // Borrow account data for read/write
@@ -99,9 +93,9 @@ where
 
             // Validate slot index
             if slot_index >= count {
-                msg!("Slot index {} out of bounds (count: {}) at depth {}, stopping traversal",
+                msg!("Slot index {} out of bounds (count: {}) at depth {}",
                      slot_index, count, depth);
-                break;
+                return Err(ReferralError::ReferralNotFound.into());
             }
 
             // Read the current record using zero-copy

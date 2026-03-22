@@ -273,17 +273,26 @@ pub fn handler_create_stake(
     let stats_today = (current_time as u64) / REAL_SECONDS_PER_DAY;
 
     if stats_today > global_state.stats_current_day {
-        // Day changed: shift array left, move yesterday's data to [6]
-        for i in 0..6 {
-            global_state.last_7days_staked[i] = global_state.last_7days_staked[i + 1];
+        let days_elapsed = stats_today - global_state.stats_current_day;
+
+        if days_elapsed >= 7 {
+            // 超过7天无活动，整个数组清零
+            global_state.last_7days_staked = [0; 7];
+        } else {
+            // 逐天推进，每天左移一位并填零
+            for _ in 0..days_elapsed {
+                for i in 0..6 {
+                    global_state.last_7days_staked[i] = global_state.last_7days_staked[i + 1];
+                }
+                global_state.last_7days_staked[6] = 0;
+            }
         }
-        global_state.last_7days_staked[6] = global_state.today_staked_amount;
 
         // Reset today's statistics
         global_state.today_staked_amount = 0;
         global_state.stats_current_day = stats_today;
 
-        msg!("Day changed: stats_current_day updated to {}, last_7days_staked shifted", stats_today);
+        msg!("Day changed: {} days elapsed, stats_current_day updated to {}", days_elapsed, stats_today);
     }
 
     // Accumulate today's staked amount
@@ -313,7 +322,7 @@ pub fn handler_create_stake(
 
     // Get user's referral_id and parent_id
     let user_referral_id = wallet_mapping.referral_id;
-    let (pda_index, slot_index) = decode_referral_id(user_referral_id);
+    let (pda_index, slot_index) = ReferralStorage::decode_and_validate_id(user_referral_id)?;
 
     // Update own self_staked and read parent_id
     let user_parent_id = {
@@ -365,21 +374,14 @@ pub fn handler_create_stake(
 }
 
 /// Find an empty order slot in the orders array
-fn find_empty_order_slot(orders: &[StakeOrder; 15]) -> Result<usize> {
+fn find_empty_order_slot(orders: &[StakeOrder; MAX_STAKES_PER_USER]) -> Result<usize> {
     for (index, order) in orders.iter().enumerate() {
-        // Empty slot criteria: amount = 0 or status = COMPLETED
-        if order.amount == 0 || order.status == ORDER_STATUS_COMPLETED {
+        // VEL-06: 使用 ORDER_STATUS_EMPTY 判断空槽位
+        if order.status == ORDER_STATUS_EMPTY || order.status == ORDER_STATUS_COMPLETED {
             return Ok(index);
         }
     }
     Err(StakeError::MaxStakesReached.into())
-}
-
-/// Decode referral ID to (pda_index, slot_index)
-fn decode_referral_id(referral_id: u32) -> (u8, u32) {
-    let pda_index = (referral_id / 1_000_000) as u8;
-    let slot_index = referral_id % 1_000_000;
-    (pda_index, slot_index)
 }
 
 /// Unstake: redeem principal and remaining interest after period ends
@@ -415,6 +417,8 @@ pub fn handler_unstake(ctx: Context<Unstake>, order_index: u8) -> Result<()> {
     {
         let order = &user_stake_account.orders[order_index as usize];
         require!(order.status == ORDER_STATUS_ACTIVE, StakeError::OrderNotActive);
+        // VEL-06: 双重保险，防止任何零值槽位通过
+        require!(order.amount > 0, StakeError::OrderNotActive);
 
         // ========== 4. Verify staking period has ended ==========
         require!(current_time >= order.end_time, StakeError::PeriodNotEnded);
@@ -607,7 +611,7 @@ pub fn handler_unstake(ctx: Context<Unstake>, order_index: u8) -> Result<()> {
     ];
 
     let user_referral_id = wallet_mapping.referral_id;
-    let (pda_index, slot_index) = decode_referral_id(user_referral_id);
+    let (pda_index, slot_index) = ReferralStorage::decode_and_validate_id(user_referral_id)?;
 
     // Update own self_staked and read parent_id
     let user_parent_id = {
@@ -721,8 +725,8 @@ fn calc_pending_interest(
     current_time: i64,
     nft_boost_bps: u64,
 ) -> Result<PendingInterestResult> {
-    // Return all zeros if the order is not active
-    if order.status != ORDER_STATUS_ACTIVE || order.amount == 0 {
+    // VEL-06: Return all zeros if the order is not active
+    if order.status != ORDER_STATUS_ACTIVE {
         return Ok(PendingInterestResult {
             base_interest: 0,
             boost_interest: 0,
@@ -795,9 +799,9 @@ fn calc_pending_interest(
 /// Includes runtime validation to prevent using another user's NFT boost
 fn get_nft_boost_bps(
     user_key: &Pubkey,
-    user_state: &Option<Account<UserState>>,
-    nft_binding_state: &Option<Account<NftBindingState>>,
-    user_nft_account: &Option<Account<TokenAccount>>,
+    user_state: &Option<Box<Account<UserState>>>,
+    nft_binding_state: &Option<Box<Account<NftBindingState>>>,
+    user_nft_account: &Option<Box<Account<TokenAccount>>>,
     program_id: &Pubkey,
 ) -> Result<u64> {
     let boost_bps = if let Some(user_state_acc) = user_state {
@@ -900,6 +904,8 @@ pub fn handler_claim_interest(ctx: Context<ClaimInterest>, order_index: u8) -> R
     {
         let order = &user_stake_account.orders[order_index as usize];
         require!(order.status == ORDER_STATUS_ACTIVE, StakeError::OrderNotActive);
+        // VEL-06: 双重保险，防止任何零值槽位通过
+        require!(order.amount > 0, StakeError::OrderNotActive);
     }
 
     // ========== 4. Accumulate latest interest (update accumulated_interest in place) ==========
@@ -1169,7 +1175,7 @@ pub fn handler_query_community_status(
     let wallet_mapping = &ctx.accounts.wallet_mapping;
     let referral_id = wallet_mapping.referral_id;
 
-    let (pda_index, slot_index) = decode_referral_id(referral_id);
+    let (pda_index, slot_index) = ReferralStorage::decode_and_validate_id(referral_id)?;
 
     let storage_accounts: [&AccountInfo; 9] = [
         &ctx.accounts.storage_1,
@@ -1230,7 +1236,7 @@ pub fn handler_claim_community_profit(
 
     // ========== 3. Read community_profit ==========
     let referral_id = wallet_mapping.referral_id;
-    let (pda_index, slot_index) = decode_referral_id(referral_id);
+    let (pda_index, slot_index) = ReferralStorage::decode_and_validate_id(referral_id)?;
 
     let storage_accounts: [&AccountInfo; 9] = [
         &ctx.accounts.storage_1,
