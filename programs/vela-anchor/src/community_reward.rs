@@ -85,11 +85,26 @@ pub fn distribute_community_reward(
         total_distributed = total_distributed.saturating_add(root_total);
         msg!("Trigger user is root, level_pool {} -> root", root_total);
     } else {
-        // ========== 2. Direct referral reward: given to the immediate parent ==========
+        // ========== 2. Direct referral reward: given to the immediate parent (requires staking) ==========
         if direct_reward > 0 {
-            add_direct_reward_profit(storage_accounts, user_parent_id, direct_reward)?;
-            total_distributed = total_distributed.saturating_add(direct_reward);
-            msg!("Direct reward {} -> parent_id {}", direct_reward, user_parent_id);
+            let (parent_pda_index, parent_slot_index) = ReferralStorage::decode_and_validate_id(user_parent_id)?;
+            let parent_storage = storage_accounts[(parent_pda_index - 1) as usize];
+            let parent_self_staked = {
+                let storage_data = parent_storage.try_borrow_data()?;
+                let parent_data = zero_copy_storage::read_record(&storage_data, parent_slot_index)?;
+                parent_data.self_staked
+            };
+
+            if parent_self_staked > 0 {
+                add_direct_reward_profit(storage_accounts, user_parent_id, direct_reward)?;
+                total_distributed = total_distributed.saturating_add(direct_reward);
+                msg!("Direct reward {} -> parent_id {} (staked={})", direct_reward, user_parent_id, parent_self_staked);
+            } else {
+                // Parent has no active stake; redirect direct reward to root
+                add_team_reward_profit(storage_accounts, ROOT_REFERRAL_ID, direct_reward)?;
+                total_distributed = total_distributed.saturating_add(direct_reward);
+                msg!("Direct reward {} -> root (parent {} has no stake)", direct_reward, user_parent_id);
+            }
         }
 
         // ========== 3. Level reward: traverse upward starting from the immediate parent ==========

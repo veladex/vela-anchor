@@ -49,3 +49,21 @@ pub struct DeleteGlobalState<'info> {
 
     pub token_program: Program<'info, Token>,
 }
+
+/// Debug: 强制更新 root 节点的 wallet 地址（仅修改 storage_1 slot 0 的 wallet 字段）
+#[derive(Accounts)]
+pub struct ForceUpdateRootWallet<'info> {
+    #[account(
+        mut,
+        constraint = authority.key().to_string() == NFT_AUTHORITY_ADDRESS
+    )]
+    pub authority: Signer<'info>,
+
+    /// CHECK: storage_1 PDA，root 节点存储在 index=1 的 slot 0
+    #[account(
+        mut,
+        seeds = [b"referral_storage", &[1u8]],
+        bump
+    )]
+    pub storage_1: UncheckedAccount<'info>,
+}

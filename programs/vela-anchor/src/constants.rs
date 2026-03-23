@@ -106,8 +106,8 @@ pub const STAGE_1_RETAIN_BPS: u64 = 9500; // Retain 95%
 /// Stage 2 reduction ratio: 3% (multiply by 9700 / 10000)
 pub const STAGE_2_RETAIN_BPS: u64 = 9700; // Retain 97%
 
-/// Stage 3 reduction ratio: 2% (multiply by 9800 / 10000)
-pub const STAGE_3_RETAIN_BPS: u64 = 9800; // Retain 98%
+/// Stage 3 reduction ratio: 2% (multiply by 9850 / 10000)
+pub const STAGE_3_RETAIN_BPS: u64 = 9850; // Retain 98.5%
 
 /// Stage 1 reduction count: 500 million / 20 million = 25 times
 pub const STAGE_1_REDUCTIONS: u16 = 25;
@@ -155,6 +155,9 @@ pub const ORDER_STATUS_CANCELLED: u8 = 3;
 
 /// Locked token vault PDA seed
 pub const LOCKED_VAULT_SEED: &[u8] = b"locked_token_vault_seed";
+
+/// 空投基金 vault PDA seed
+pub const AIRDROP_VAULT_SEED: &[u8] = b"airdrop_vault_seed";
 
 // ============================================================================
 // NFT Binding related constants
@@ -216,13 +219,13 @@ pub const COMMUNITY_LEVEL_BONUS_MIN: u8 = 3;
 /// L0=0, L1=0, L2=0, L3=100k, L4=100k, L5=200k, L6=200k, L7=300k
 pub const LEVEL_SELF_STAKED_REQ: [u64; 8] = [
     0,
-    0,
-    0,
-    100_000_000_000_000,   // 100k * 10^9
-    100_000_000_000_000,   // 100k
-    200_000_000_000_000,   // 200k
-    200_000_000_000_000,   // 200k
-    300_000_000_000_000,   // 300k
+    1_000_000_000_000,         // L1: 1,000 * 10^9
+    1_000_000_000_000,         // L2: 1,000 * 10^9
+    50_000_000_000_000,        // L3: 50,000 (5万) * 10^9
+    50_000_000_000_000,        // L4: 50,000 (5万) * 10^9
+    100_000_000_000_000,       // L5: 100,000 (10万) * 10^9
+    100_000_000_000_000,       // L6: 100,000 (10万) * 10^9
+    150_000_000_000_000,       // L7: 150,000 (15万) * 10^9
 ];
 
 /// Community performance requirement per level (total_staked, subordinates only), unit: smallest token unit

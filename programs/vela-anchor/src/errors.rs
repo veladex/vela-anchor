@@ -203,3 +203,13 @@ pub enum NodePoolError {
     #[msg("Pool claimed count exceeded maximum shares")]
     ClaimedCountExceeded,
 }
+
+// ============================================================================
+// Airdrop Vault error definitions
+// ============================================================================
+
+#[error_code]
+pub enum AirdropVaultError {
+    #[msg("Insufficient airdrop fund balance")]
+    InsufficientAirdropBalance,
+}

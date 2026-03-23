@@ -3,11 +3,11 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount},
 };
-use crate::constants::{NFT_AUTHORITY_ADDRESS, LOCKED_VAULT_SEED};
+use crate::constants::{NFT_AUTHORITY_ADDRESS, LOCKED_VAULT_SEED, AIRDROP_VAULT_SEED};
 use crate::errors::LockedVaultError;
-use crate::structs::{LockedTokenVault, GlobalState, ReferralStorage};
+use crate::structs::{LockedTokenVault, AirdropVault, GlobalState, ReferralStorage};
 
-/// Initialize global state (combines LockedTokenVault + GlobalState)
+/// Initialize global state (combines LockedTokenVault + AirdropVault + GlobalState)
 #[derive(Accounts)]
 pub struct InitializeGlobal<'info> {
     #[account(mut)]
@@ -32,6 +32,24 @@ pub struct InitializeGlobal<'info> {
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_mint: Account<'info, Mint>,
+
+    // ============ AirdropVault related accounts ============
+    #[account(
+        init,
+        payer = authority,
+        space = AirdropVault::SIZE,
+        seeds = [AIRDROP_VAULT_SEED, token_mint.key().as_ref()],
+        bump
+    )]
+    pub airdrop_vault: Account<'info, AirdropVault>,
+
+    #[account(
+        init,
+        payer = authority,
+        token::mint = token_mint,
+        token::authority = airdrop_vault,
+    )]
+    pub airdrop_vault_token_account: Account<'info, TokenAccount>,
 
     // ============ GlobalState related accounts ============
     #[account(
@@ -73,7 +91,17 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
     locked_vault.created_at = clock.unix_timestamp;
     locked_vault.bump = ctx.bumps.locked_vault;
 
-    // 3. Initialize GlobalState
+    // 3. Initialize AirdropVault
+    let airdrop_vault = &mut ctx.accounts.airdrop_vault;
+    airdrop_vault.token_mint = ctx.accounts.token_mint.key();
+    airdrop_vault.vault_token_account = ctx.accounts.airdrop_vault_token_account.key();
+    airdrop_vault.authority = ctx.accounts.authority.key();
+    airdrop_vault.total_deposited = 0;
+    airdrop_vault.total_released = 0;
+    airdrop_vault.created_at = clock.unix_timestamp;
+    airdrop_vault.bump = ctx.bumps.airdrop_vault;
+
+    // 4. Initialize GlobalState
     let global_state = &mut ctx.accounts.global_state;
     global_state.authority = ctx.accounts.authority.key();
     global_state.stake_token_mint = ctx.accounts.token_mint.key();
@@ -109,7 +137,7 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
     // Initialize referral fee wallet
     global_state.referral_fee_wallet = ctx.accounts.referral_fee_wallet.key();
 
-    // 4. Compute and write the 9 ReferralStorage PDA addresses
+    // 5. Compute and write the 9 ReferralStorage PDA addresses
     // find_program_address is called only once during initialization; subsequent validation is purely key comparison
     for i in 0u8..9u8 {
         let idx = i + 1; // 1-9
@@ -127,8 +155,10 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
     msg!("Authority: {}", global_state.authority);
     msg!("Token mint: {}", locked_vault.token_mint);
     msg!("Vault token account: {}", locked_vault.vault_token_account);
+    msg!("Airdrop vault token account: {}", airdrop_vault.vault_token_account);
     msg!("GlobalState PDA bump: {}", global_state.bump);
     msg!("LockedVault PDA bump: {}", locked_vault.bump);
+    msg!("AirdropVault PDA bump: {}", airdrop_vault.bump);
     msg!("9 storage PDA addresses written to GlobalState");
     msg!("Referral fee wallet: {}", global_state.referral_fee_wallet);
     msg!("========================================");

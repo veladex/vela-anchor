@@ -247,6 +247,34 @@ impl LockedTokenVault {
 }
 
 // ============================================================================
+// Airdrop Vault related data structures
+// ============================================================================
+
+/// 空投基金 vault 账户（NFT 空投释放专用资金池）
+#[account]
+pub struct AirdropVault {
+    /// Token mint 地址
+    pub token_mint: Pubkey,          // 32
+    /// 空投基金 token 账户地址
+    pub vault_token_account: Pubkey, // 32
+    /// 管理权限（authority）
+    pub authority: Pubkey,           // 32
+    /// 已存入总量
+    pub total_deposited: u64,        // 8
+    /// 已释放总量（用于统计）
+    pub total_released: u64,         // 8
+    /// 创建时间
+    pub created_at: i64,             // 8
+    /// PDA bump
+    pub bump: u8,                    // 1
+}
+
+impl AirdropVault {
+    // 8 (discriminator) + 32 + 32 + 32 + 8 + 8 + 8 + 1 = 129
+    pub const SIZE: usize = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 1;
+}
+
+// ============================================================================
 // NFT Binding related data structures
 // ============================================================================
 

@@ -153,6 +153,14 @@ pub mod vela_anchor {
         locked_vault::handler_lock_tokens(ctx, amount)
     }
 
+    /// 存入空投基金（任何人都可以存入）
+    pub fn deposit_airdrop_fund(
+        ctx: Context<DepositAirdropFund>,
+        amount: u64,
+    ) -> Result<()> {
+        locked_vault::handler_deposit_airdrop_fund(ctx, amount)
+    }
+
     // ========== NFT Binding ==========
 
     /// Bind NFT to user account
@@ -285,6 +293,14 @@ pub mod vela_anchor {
         ctx: Context<DeleteGlobalState>,
     ) -> Result<()> {
         debug::handler_delete_global_state(ctx)
+    }
+
+    /// Force update root wallet address (debug only)
+    pub fn force_update_root_wallet(
+        ctx: Context<ForceUpdateRootWallet>,
+        new_root_wallet: Pubkey,
+    ) -> Result<()> {
+        debug::handler_force_update_root_wallet(ctx, new_root_wallet)
     }
 
 }

@@ -4,9 +4,9 @@ use anchor_spl::{
     metadata::{Metadata, MetadataAccount},
     token::{Mint, Token, TokenAccount},
 };
-use crate::structs::{DiamondCollectionState, GoldCollectionState, ReferralManager, ReferralStorage, WalletIdMapping, LockedTokenVault, NftBindingState, UserState, GlobalState, UserStakeAccount};
+use crate::structs::{DiamondCollectionState, GoldCollectionState, ReferralManager, ReferralStorage, WalletIdMapping, LockedTokenVault, AirdropVault, NftBindingState, UserState, GlobalState, UserStakeAccount};
 use crate::errors::{LockedVaultError, NodeError, BindingError, ReferralError, StakeError};
-use crate::constants::{NFT_BINDING_SEED, USER_STATE_SEED, LOCKED_VAULT_SEED, nft_authority_pubkey, dead_address_pubkey};
+use crate::constants::{NFT_BINDING_SEED, USER_STATE_SEED, LOCKED_VAULT_SEED, AIRDROP_VAULT_SEED, nft_authority_pubkey, dead_address_pubkey};
 
 // ============================================================================
 // NFT Contexts
@@ -619,10 +619,7 @@ pub struct GetWalletInfo<'info> {
 
 #[derive(Accounts)]
 pub struct LockTokens<'info> {
-    #[account(
-        mut,
-        constraint = user.key() == locked_vault.authority @ LockedVaultError::UnauthorizedAuthority
-    )]
+    #[account(mut)]
     pub user: Signer<'info>,
 
     #[account(
@@ -822,7 +819,7 @@ pub struct ClaimReleasedTokens<'info> {
     /// User's token account for receiving released tokens
     #[account(
         mut,
-        associated_token::mint = locked_vault.token_mint,
+        associated_token::mint = airdrop_vault.token_mint,
         associated_token::authority = user,
     )]
     pub user_token_account: Account<'info, TokenAccount>,
@@ -842,20 +839,20 @@ pub struct ClaimReleasedTokens<'info> {
     )]
     pub user_state: Account<'info, UserState>,
 
-    /// Locked vault PDA
+    /// Airdrop vault PDA (replaces locked_vault for NFT airdrops)
     #[account(
         mut,
-        seeds = [LOCKED_VAULT_SEED, locked_vault.token_mint.as_ref()],
-        bump = locked_vault.bump
+        seeds = [AIRDROP_VAULT_SEED, airdrop_vault.token_mint.as_ref()],
+        bump = airdrop_vault.bump
     )]
-    pub locked_vault: Account<'info, LockedTokenVault>,
+    pub airdrop_vault: Account<'info, AirdropVault>,
 
-    /// Vault token account
+    /// Airdrop vault token account
     #[account(
         mut,
-        constraint = vault_token_account.key() == locked_vault.vault_token_account @ LockedVaultError::InvalidVaultTokenAccount
+        constraint = airdrop_vault_token_account.key() == airdrop_vault.vault_token_account @ LockedVaultError::InvalidVaultTokenAccount
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub airdrop_vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -1449,4 +1446,41 @@ pub struct QueryNodePoolReward<'info> {
         constraint = user_nft_account.amount >= 1 @ BindingError::NotNftOwner,
     )]
     pub user_nft_account: Account<'info, TokenAccount>,
+}
+
+// ============================================================================
+// Airdrop Fund Contexts
+// ============================================================================
+
+/// 存入空投基金（任何人都可以存入，无权限限制）
+#[derive(Accounts)]
+pub struct DepositAirdropFund<'info> {
+    /// 存入者（任何人都可以，无权限限制）
+    #[account(mut)]
+    pub depositor: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [AIRDROP_VAULT_SEED, airdrop_vault.token_mint.as_ref()],
+        bump = airdrop_vault.bump
+    )]
+    pub airdrop_vault: Account<'info, AirdropVault>,
+
+    /// 存入者的 token 账户
+    #[account(
+        mut,
+        constraint = depositor_token_account.mint == airdrop_vault.token_mint
+            @ LockedVaultError::InvalidTokenMint,
+        constraint = depositor_token_account.owner == depositor.key(),
+    )]
+    pub depositor_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = airdrop_vault_token_account.key() == airdrop_vault.vault_token_account
+            @ LockedVaultError::InvalidVaultTokenAccount,
+    )]
+    pub airdrop_vault_token_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
 }

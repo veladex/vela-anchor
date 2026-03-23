@@ -347,8 +347,8 @@ pub fn handler_claim_released_tokens(
     let user_nft_token_account = &ctx.accounts.user_nft_token_account;
     let nft_binding_state = &mut ctx.accounts.nft_binding_state;
     let user_state = &ctx.accounts.user_state;
-    let locked_vault = &mut ctx.accounts.locked_vault;
-    let vault_token_account = &ctx.accounts.vault_token_account;
+    let airdrop_vault = &mut ctx.accounts.airdrop_vault;
+    let airdrop_vault_token_account = &ctx.accounts.airdrop_vault_token_account;
     let user_token_account = &ctx.accounts.user_token_account;
     let clock = Clock::get()?;
 
@@ -381,23 +381,23 @@ pub fn handler_claim_released_tokens(
 
     // 6. Check vault balance
     require!(
-        vault_token_account.amount >= releasable_amount,
+        airdrop_vault_token_account.amount >= releasable_amount,
         TokenReleaseError::InsufficientVaultBalance
     );
 
-    // 7. Transfer tokens from vault to user using PDA signer
-    let token_mint = locked_vault.token_mint.key();
+    // 7. Transfer tokens from airdrop vault to user using PDA signer
+    let token_mint = airdrop_vault.token_mint.key();
     let vault_seeds = &[
-        crate::constants::LOCKED_VAULT_SEED,
+        crate::constants::AIRDROP_VAULT_SEED,
         token_mint.as_ref(),
-        &[locked_vault.bump],
+        &[airdrop_vault.bump],
     ];
     let signer_seeds = &[&vault_seeds[..]];
 
     let cpi_accounts = Transfer {
-        from: vault_token_account.to_account_info(),
+        from: airdrop_vault_token_account.to_account_info(),
         to: user_token_account.to_account_info(),
-        authority: locked_vault.to_account_info(),
+        authority: airdrop_vault.to_account_info(),
     };
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
@@ -405,6 +405,11 @@ pub fn handler_claim_released_tokens(
 
     // 8. Update binding state
     nft_binding_state.released_amount = nft_binding_state.released_amount
+        .checked_add(releasable_amount)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+
+    // 9. Update airdrop vault total_released
+    airdrop_vault.total_released = airdrop_vault.total_released
         .checked_add(releasable_amount)
         .ok_or(ProgramError::ArithmeticOverflow)?;
 

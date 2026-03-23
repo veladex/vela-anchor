@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token;
 use crate::debug_contexts::*;
 use crate::constants::LOCKED_VAULT_SEED;
+use crate::zero_copy_storage;
 
 /// Handler: delete GlobalState + LockedTokenVault + VaultTokenAccount
 pub fn handler_delete_global_state(ctx: Context<DeleteGlobalState>) -> Result<()> {
@@ -62,5 +63,25 @@ pub fn handler_delete_global_state(ctx: Context<DeleteGlobalState>) -> Result<()
 
     // 4. LockedTokenVault is closed via Anchor `close = authority` constraint
 
+    Ok(())
+}
+
+/// Handler: 强制更新 root 节点的 wallet 地址（debug only）
+pub fn handler_force_update_root_wallet(
+    ctx: Context<ForceUpdateRootWallet>,
+    new_root_wallet: Pubkey,
+) -> Result<()> {
+    let storage_info = ctx.accounts.storage_1.to_account_info();
+    let mut data = storage_info.try_borrow_mut_data()?;
+    let mut root_record = zero_copy_storage::read_record(&data, 0)?;
+
+    let old_wallet = root_record.wallet;
+    msg!("DEBUG: Old root wallet: {}", old_wallet);
+    msg!("DEBUG: New root wallet: {}", new_root_wallet);
+
+    root_record.wallet = new_root_wallet;
+    zero_copy_storage::write_record(&mut data, 0, &root_record)?;
+
+    msg!("DEBUG: Root wallet updated successfully");
     Ok(())
 }
