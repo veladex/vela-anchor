@@ -203,7 +203,7 @@ pub struct TokensClaimedEvent {
     pub timestamp: i64,
 }
 
-/// 空投基金存入事件
+/// Airdrop fund deposit event
 #[event]
 pub struct AirdropFundDepositedEvent {
     pub depositor: Pubkey,

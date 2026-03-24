@@ -61,8 +61,8 @@ pub struct InitializeGlobal<'info> {
     )]
     pub global_state: Account<'info, GlobalState>,
 
-    /// 推荐人注册费的专用收款钱包（普通 SOL 钱包，由管理员指定）
-    /// CHECK: 此账户仅用于存储地址，不做额外校验
+    /// Dedicated wallet for receiving referral registration fees (a regular SOL wallet, specified by the admin)
+    /// CHECK: This account is only used to store an address, no additional validation required
     pub referral_fee_wallet: UncheckedAccount<'info>,
 
     // ============ System programs ============
