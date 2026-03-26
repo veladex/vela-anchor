@@ -796,12 +796,21 @@ pub struct UnbindNft<'info> {
     )]
     pub nft_binding_state: Account<'info, NftBindingState>,
 
-    /// User's old NFT token account (to prove user no longer holds the NFT)
+    /// NFT mint account (must match bound mint)
     #[account(
-        token::mint = user_state.bound_nft_mint,
-        token::authority = user
+        address = user_state.bound_nft_mint
+    )]
+    pub nft_mint: Account<'info, Mint>,
+
+    /// User's ATA for the bound NFT mint (deterministic, prevents bypass with alternate accounts)
+    #[account(
+        associated_token::mint = nft_mint,
+        associated_token::authority = user
     )]
     pub user_token_account: Account<'info, TokenAccount>,
+
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
 }
 
 /// Context for claim_released_tokens instruction

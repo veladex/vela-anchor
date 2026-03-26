@@ -233,7 +233,8 @@ pub struct LockedTokenVault {
     pub vault_token_account: Pubkey,
     /// Authority allowed to lock tokens
     pub authority: Pubkey,
-    /// Total locked amount
+    /// Cumulative total amount deposited into the vault (only incremented on lock_tokens).
+    /// NOT the current vault balance — outflows (unstake, interest, rewards) are NOT subtracted.
     pub total_locked: u64,
     /// Creation timestamp
     pub created_at: i64,
@@ -250,22 +251,22 @@ impl LockedTokenVault {
 // Airdrop Vault related data structures
 // ============================================================================
 
-/// 空投基金 vault 账户（NFT 空投释放专用资金池）
+/// Airdrop vault account (dedicated fund pool for NFT airdrop releases)
 #[account]
 pub struct AirdropVault {
-    /// Token mint 地址
+    /// Token mint address
     pub token_mint: Pubkey,          // 32
-    /// 空投基金 token 账户地址
+    /// Airdrop vault token account address
     pub vault_token_account: Pubkey, // 32
-    /// 管理权限（authority）
+    /// Authority
     pub authority: Pubkey,           // 32
-    /// 已存入总量
+    /// Total deposited amount
     pub total_deposited: u64,        // 8
-    /// 已释放总量（用于统计）
+    /// Total released amount (for statistics)
     pub total_released: u64,         // 8
-    /// 创建时间
+    /// Creation timestamp
     pub created_at: i64,             // 8
-    /// PDA bump
+    /// PDA bump seed
     pub bump: u8,                    // 1
 }
 
@@ -477,7 +478,7 @@ pub struct GlobalState {
     /// Last 7 days staked amounts (fixed index array)
     /// [0] = 7 days ago, [1] = 6 days ago, ..., [6] = today (real-time updated)
     pub last_7days_staked: [u64; 7],            // 56 bytes (7 * 8)
-    /// 推荐人绑定时的专用 SOL 收款地址（用于收取注册费，防 Sybil 攻击）
+    /// Dedicated SOL receiving address for referral binding (collects registration fee, anti-Sybil)
     pub referral_fee_wallet: Pubkey,            // 32 bytes
 }
 
