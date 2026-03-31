@@ -640,19 +640,19 @@ pub fn handler_unstake(ctx: Context<Unstake>, order_index: u8) -> Result<()> {
     }
 
     // ========== 15. Community reward distribution (based on base_interest, excluding NFT boost) ==========
-    let distributed = if base_interest > 0 {
-        let storage_account_infos: [&AccountInfo; 9] = [
-            &ctx.accounts.storage_1,
-            &ctx.accounts.storage_2,
-            &ctx.accounts.storage_3,
-            &ctx.accounts.storage_4,
-            &ctx.accounts.storage_5,
-            &ctx.accounts.storage_6,
-            &ctx.accounts.storage_7,
-            &ctx.accounts.storage_8,
-            &ctx.accounts.storage_9,
-        ];
+    let storage_account_infos: [&AccountInfo; 9] = [
+        &ctx.accounts.storage_1,
+        &ctx.accounts.storage_2,
+        &ctx.accounts.storage_3,
+        &ctx.accounts.storage_4,
+        &ctx.accounts.storage_5,
+        &ctx.accounts.storage_6,
+        &ctx.accounts.storage_7,
+        &ctx.accounts.storage_8,
+        &ctx.accounts.storage_9,
+    ];
 
+    let distributed = if base_interest > 0 {
         let dist = community_reward::distribute_community_reward(
             &storage_account_infos,
             user_referral_id,
@@ -664,6 +664,8 @@ pub fn handler_unstake(ctx: Context<Unstake>, order_index: u8) -> Result<()> {
         msg!("Community reward distributed: {} (base_interest={})", dist, base_interest);
         dist
     } else {
+        // Even if no interest, still trigger week refresh
+        community_reward::maybe_refresh_week(global_state, current_time, &storage_account_infos)?;
         0u64
     };
 

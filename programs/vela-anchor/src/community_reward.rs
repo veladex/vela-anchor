@@ -43,6 +43,9 @@ pub fn distribute_community_reward(
     global_state: &mut GlobalState,
     current_timestamp: i64,
 ) -> Result<u64> {
+    // Cross-week detection & refresh (execute first, regardless of reward amount)
+    maybe_refresh_week(global_state, current_timestamp, storage_accounts)?;
+
     if reward == 0 {
         return Ok(0);
     }
@@ -231,9 +234,6 @@ pub fn distribute_community_reward(
     let gold_pool_amount = (reward as u128)
         .checked_mul(NODE_POOL_GOLD_BPS as u128).unwrap()
         .checked_div(BASIS_POINTS as u128).unwrap() as u64;
-
-    // Cross-week detection & refresh
-    maybe_refresh_week(global_state, current_timestamp, storage_accounts)?;
 
     // Accumulate into the current week
     global_state.diamond_pool_current = global_state.diamond_pool_current.saturating_add(diamond_pool_amount);

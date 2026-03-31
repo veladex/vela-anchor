@@ -7,7 +7,7 @@ use std::str::FromStr;
 //
 // ★★★ Switch test/production environment by modifying this single value ★★★
 //
-// Test environment: 10   (1 day = 10 seconds, for quick debugging)
+// Test environment: 96   (1 day = 96 seconds, 1 week = 11.2 minutes)
 // Production environment: 86400 (1 day = 86400 seconds = 24 hours, real time)
 //
 pub const SECONDS_PER_DAY: u64 = 86400;
