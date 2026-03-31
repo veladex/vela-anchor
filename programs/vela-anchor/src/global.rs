@@ -117,7 +117,7 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
 
     // Initialize daily deposit cap related fields
     global_state.daily_deposit_cap = crate::constants::INITIAL_DAILY_DEPOSIT_CAP;
-    global_state.current_deposit_day = (clock.unix_timestamp as u64) / crate::constants::REAL_SECONDS_PER_DAY;
+    global_state.current_deposit_day = (clock.unix_timestamp as u64) / crate::constants::SECONDS_PER_DAY;
     global_state.daily_deposited = 0;
 
     // Initialize node reward pool related fields
@@ -130,7 +130,7 @@ pub fn handler_initialize_global(ctx: Context<InitializeGlobal>) -> Result<()> {
     global_state.gold_pool_claimed_count = 0;
 
     // Initialize staking statistics fields
-    global_state.stats_current_day = (clock.unix_timestamp as u64) / crate::constants::REAL_SECONDS_PER_DAY;
+    global_state.stats_current_day = (clock.unix_timestamp as u64) / crate::constants::SECONDS_PER_DAY;
     global_state.today_staked_amount = 0;
     global_state.last_7days_staked = [0; 7];
 

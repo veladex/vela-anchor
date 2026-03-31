@@ -375,5 +375,5 @@ pub(crate) fn maybe_refresh_week(
 
 /// Calculate the current UTC week number
 pub(crate) fn calculate_week_number(timestamp: i64) -> u64 {
-    ((timestamp - WEEK_EPOCH_OFFSET) / SECONDS_PER_WEEK) as u64
+    ((timestamp - WEEK_EPOCH_OFFSET) / SECONDS_PER_WEEK as i64) as u64
 }

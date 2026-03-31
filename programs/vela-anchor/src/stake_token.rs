@@ -77,7 +77,7 @@ pub fn get_user_stake_cap(total_staked: u64) -> u64 {
 
 /// Cross-day detection & daily quota update
 fn check_and_update_daily_cap(global_state: &mut GlobalState, now: i64) {
-    let today = (now as u64) / REAL_SECONDS_PER_DAY;
+    let today = (now as u64) / SECONDS_PER_DAY;
 
     if today > global_state.current_deposit_day {
         // New day: check if previous day was fully used
@@ -270,7 +270,7 @@ pub fn handler_create_stake(
     msg!("Updated global state: total_staked = {}, daily_deposited = {}", global_state.total_staked, global_state.daily_deposited);
 
     // ========== 10.5. Update staking statistics (today + last 7 days) ==========
-    let stats_today = (current_time as u64) / REAL_SECONDS_PER_DAY;
+    let stats_today = (current_time as u64) / SECONDS_PER_DAY;
 
     if stats_today > global_state.stats_current_day {
         let days_elapsed = stats_today - global_state.stats_current_day;
@@ -446,7 +446,7 @@ pub fn handler_unstake(ctx: Context<Unstake>, order_index: u8) -> Result<()> {
             order.accumulated_interest = order.accumulated_interest
                 .checked_add(new_interest)
                 .ok_or(StakeError::ArithmeticOverflow)?;
-            order.last_interest_time += (hours_passed * SECONDS_PER_HOUR as u64) as i64;
+            order.last_interest_time += (hours_passed * SECONDS_PER_HOUR) as i64;
         }
     }
 
@@ -941,7 +941,7 @@ pub fn handler_claim_interest(ctx: Context<ClaimInterest>, order_index: u8) -> R
             order.accumulated_interest = order.accumulated_interest
                 .checked_add(new_interest)
                 .ok_or(StakeError::ArithmeticOverflow)?;
-            order.last_interest_time += (hours_passed * SECONDS_PER_HOUR as u64) as i64;
+            order.last_interest_time += (hours_passed * SECONDS_PER_HOUR) as i64;
         }
     }
 

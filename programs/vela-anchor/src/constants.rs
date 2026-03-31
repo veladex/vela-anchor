@@ -2,6 +2,27 @@ use anchor_lang::prelude::Pubkey;
 use std::str::FromStr;
 
 // ============================================================================
+// Time control constant (global speed controller)
+// ============================================================================
+//
+// ★★★ Switch test/production environment by modifying this single value ★★★
+//
+// Test environment: 10   (1 day = 10 seconds, for quick debugging)
+// Production environment: 86400 (1 day = 86400 seconds = 24 hours, real time)
+//
+pub const SECONDS_PER_DAY: u64 = 60;
+
+/// Seconds per hour (auto-derived from SECONDS_PER_DAY)
+/// Production: 86400 / 24 = 3600
+/// Test: 10 / 24 = 0 → minimum value 1 (ensures interest accumulation, no division by zero)
+pub const SECONDS_PER_HOUR: u64 = if SECONDS_PER_DAY / 24 > 0 { SECONDS_PER_DAY / 24 } else { 1 };
+
+/// Seconds per week (auto-derived from SECONDS_PER_DAY)
+/// Production: 86400 * 7 = 604800
+/// Test: 10 * 7 = 70
+pub const SECONDS_PER_WEEK: u64 = SECONDS_PER_DAY * 7;
+
+// ============================================================================
 // NFT related constants
 // ============================================================================
 
@@ -32,23 +53,17 @@ pub const GOLD_BOOST_PERCENTAGE: u8 = 10;
 pub const REFERRAL_MANAGER_SEED: &[u8] = b"referral_manager";
 pub const REFERRAL_STORAGE_SEED: &[u8] = b"referral_storage";
 
-/// Referral 注册费（0.01 SOL = 10_000_000 lamports）
+/// Referral registration fee (0.01 SOL = 10_000_000 lamports)
 pub const REFERRAL_REGISTRATION_FEE: u64 = 10_000_000;
+
 
 
 // ============================================================================
 // Staking related constants
 // ============================================================================
 
-/// Seconds per day
-/// Production env: 86400 (24 * 60 * 60)
-/// Test env: can be changed to 30 for easy debugging
-pub const SECONDS_PER_DAY: u32 = 10;  // Can be changed to 30 for debugging
-
-/// Seconds per hour
-/// Production env: 3600 (60 * 60)
-/// Test env: can be changed to 5 for easy debugging
-pub const SECONDS_PER_HOUR: u32 = 5;  // Can be changed to 5 for debugging
+// Note: SECONDS_PER_DAY / SECONDS_PER_HOUR / SECONDS_PER_WEEK are defined at the top of the file
+// Only need to modify SECONDS_PER_DAY at the top to control all time acceleration/deceleration
 
 /// Max simultaneous staking count per user
 pub const MAX_STAKES_PER_USER: usize = 20;
@@ -67,10 +82,10 @@ pub const STAKE_PERIOD_7_DAYS: u8 = 1;
 pub const STAKE_PERIOD_30_DAYS: u8 = 2;
 pub const STAKE_PERIOD_90_DAYS: u8 = 3;
 
-/// Staking period in seconds - using u32 to save space
-pub const PERIOD_7_DAYS: u32 = 7 * SECONDS_PER_DAY;   // 7 days in seconds
-pub const PERIOD_30_DAYS: u32 = 30 * SECONDS_PER_DAY; // 30 days in seconds
-pub const PERIOD_90_DAYS: u32 = 90 * SECONDS_PER_DAY; // 90 days in seconds
+/// Staking period in seconds
+pub const PERIOD_7_DAYS: u64 = 7 * SECONDS_PER_DAY;   // 7 days in seconds
+pub const PERIOD_30_DAYS: u64 = 30 * SECONDS_PER_DAY; // 30 days in seconds
+pub const PERIOD_90_DAYS: u64 = 90 * SECONDS_PER_DAY; // 90 days in seconds
 
 /// Dedicated basis point denominator for daily interest rate: 1_000_000 = 100%
 /// Separated from BASIS_POINTS(10000), used only for daily rate calculations
@@ -144,10 +159,10 @@ pub const UPDATE_LEVEL_NUM: u32 = 60;
 pub const REFERRAL_UPDATE_LEVELS: u32 = 50;
 
 /// Staking order status constants
-pub const ORDER_STATUS_EMPTY: u8 = 0;      // 空槽位（与 Default 零值一致）
-pub const ORDER_STATUS_ACTIVE: u8 = 1;
-pub const ORDER_STATUS_COMPLETED: u8 = 2;
-pub const ORDER_STATUS_CANCELLED: u8 = 3;
+pub const ORDER_STATUS_EMPTY: u8 = 0;      // Empty slot (matches Default zero value)
+pub const ORDER_STATUS_ACTIVE: u8 = 1;     // Active
+pub const ORDER_STATUS_COMPLETED: u8 = 2;  // Completed
+pub const ORDER_STATUS_CANCELLED: u8 = 3;  // Cancelled
 
 // ============================================================================
 // Locked Token Vault related constants
@@ -156,7 +171,7 @@ pub const ORDER_STATUS_CANCELLED: u8 = 3;
 /// Locked token vault PDA seed
 pub const LOCKED_VAULT_SEED: &[u8] = b"locked_token_vault_seed";
 
-/// 空投基金 vault PDA seed
+/// Airdrop fund vault PDA seed
 pub const AIRDROP_VAULT_SEED: &[u8] = b"airdrop_vault_seed";
 
 // ============================================================================
@@ -181,11 +196,8 @@ pub const NODE_TYPE_DIAMOND: u8 = 1;
 /// Node type: Gold
 pub const NODE_TYPE_GOLD: u8 = 2;
 
-/// Binding cooldown period (15 days)
-pub const BINDING_COOLDOWN_DAYS: u32 = 15;
-
 /// Binding cooldown period in seconds
-pub const BINDING_COOLDOWN_SECONDS: i64 = 15 * SECONDS_PER_DAY as i64;
+pub const BINDING_COOLDOWN_SECONDS: i64 = (15 * SECONDS_PER_DAY) as i64;
 
 /// Diamond node daily release amount (300 tokens × 10^9 decimals)
 pub const DIAMOND_DAILY_RELEASE: u64 = 300_000_000_000;
@@ -221,11 +233,11 @@ pub const LEVEL_SELF_STAKED_REQ: [u64; 8] = [
     0,
     1_000_000_000_000,         // L1: 1,000 * 10^9
     1_000_000_000_000,         // L2: 1,000 * 10^9
-    50_000_000_000_000,        // L3: 50,000 (5万) * 10^9
-    50_000_000_000_000,        // L4: 50,000 (5万) * 10^9
-    100_000_000_000_000,       // L5: 100,000 (10万) * 10^9
-    100_000_000_000_000,       // L6: 100,000 (10万) * 10^9
-    150_000_000_000_000,       // L7: 150,000 (15万) * 10^9
+    50_000_000_000_000,        // L3: 50,000 * 10^9
+    50_000_000_000_000,        // L4: 50,000 * 10^9
+    100_000_000_000_000,       // L5: 100,000 * 10^9
+    100_000_000_000_000,       // L6: 100,000 * 10^9
+    150_000_000_000_000,       // L7: 150,000 * 10^9
 ];
 
 /// Community performance requirement per level (total_staked, subordinates only), unit: smallest token unit
@@ -250,9 +262,6 @@ pub const ROOT_REFERRAL_ID: u32 = 1_000_000;
 
 // ============ Daily deposit cap constants ============
 
-/// Real seconds per day (used for daily quota calculation, independent from interest rate SECONDS_PER_DAY)
-/// Production: 86400 (24 * 60 * 60)
-pub const REAL_SECONDS_PER_DAY: u64 = 10;  // Test env: 10s per day, production: 86400
 
 /// Initial daily deposit cap: 3 million tokens (9 decimals)
 pub const INITIAL_DAILY_DEPOSIT_CAP: u64 = 3_000_000_000_000_000; // 3M * 10^9
@@ -294,12 +303,10 @@ pub const DIAMOND_POOL_SHARES: u64 = 600;
 /// Gold node claim shares: 1/12000
 pub const GOLD_POOL_SHARES: u64 = 12_000;
 
-/// Seconds per week (real time, not shortened)
-pub const SECONDS_PER_WEEK: i64 = 10; // 7 * 86400; // 604800
+// Note: SECONDS_PER_WEEK is defined at the top of the file, auto-derived from SECONDS_PER_DAY
 
-/// Max weeks to process in a single refresh (防止 CU 溢出)
+/// Max weeks to process in a single refresh (prevent CU overflow)
 pub const MAX_WEEKS_PER_REFRESH: u64 = 52;
 
 /// Week epoch offset (1970-01-05 Monday 00:00 UTC)
 pub const WEEK_EPOCH_OFFSET: i64 = 345600;
-

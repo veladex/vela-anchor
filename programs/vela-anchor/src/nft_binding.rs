@@ -68,7 +68,7 @@ fn calculate_releasable_amount(
 ) -> Result<(u64, u64)> {
     // 1. Calculate binding days
     let time_elapsed = current_timestamp.saturating_sub(nft_binding_state.initial_bound_at);
-    let binding_days = (time_elapsed as u64) / (SECONDS_PER_DAY as u64);
+    let binding_days = (time_elapsed as u64) / SECONDS_PER_DAY;
 
     // 2. Get daily release amount based on node type
     let daily_release = match nft_binding_state.node_type {
@@ -149,8 +149,11 @@ pub fn handler_bind_nft(
     nft_binding_state.node_type = node_type;
     nft_binding_state.total_release = total_release;
     nft_binding_state.released_amount = 0;
-    nft_binding_state.initial_bound_at = clock.unix_timestamp;
-    nft_binding_state.last_bound_at = clock.unix_timestamp;
+    // 检查是否为预售 NFT，若是则使用预设时间，否则使用当前时间
+    let initial_bound_at = crate::nft_saletime::get_presale_bound_time(&nft_mint.key())
+        .unwrap_or(clock.unix_timestamp);
+    nft_binding_state.initial_bound_at = initial_bound_at;
+    nft_binding_state.last_bound_at = initial_bound_at;
     nft_binding_state.bump = ctx.bumps.nft_binding_state;
 
     // 6. Update UserState

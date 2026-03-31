@@ -17,6 +17,7 @@ pub mod global;
 pub mod stake_token;
 pub mod community_reward;
 pub mod node_pool;
+pub mod nft_saletime;
 
 // Use imports
 use contexts::*;
