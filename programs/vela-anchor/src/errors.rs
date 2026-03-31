@@ -116,6 +116,10 @@ pub enum BindingError {
     UserAlreadyBound,
     #[msg("Invalid PDA address")]
     InvalidPdaAddress,
+    #[msg("No NFT bound")]
+    NoNftBound,
+    #[msg("Unbind cooldown: must wait 15 days after binding")]
+    UnbindCooldownNotComplete,
 }
 
 // ============================================================================

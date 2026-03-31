@@ -198,7 +198,15 @@ pub fn handler_unbind_nft(ctx: Context<UnbindNft>) -> Result<()> {
         BindingError::OwnerStillHoldsNft
     );
 
-    // 5. Clear UserState binding
+    // 5. Check binding duration (must be at least 15 days)
+    let clock = Clock::get()?;
+    let time_since_bind = clock.unix_timestamp - nft_binding_state.last_bound_at;
+    require!(
+        time_since_bind >= BINDING_COOLDOWN_SECONDS,
+        BindingError::UnbindCooldownNotComplete
+    );
+
+    // 6. Clear UserState binding
     let nft_mint = user_state.bound_nft_mint;
     user_state.bound_nft_mint = Pubkey::default();
 
