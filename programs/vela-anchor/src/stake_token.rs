@@ -79,7 +79,7 @@ pub fn get_user_stake_cap(total_staked: u64) -> u64 {
 fn check_and_update_daily_cap(global_state: &mut GlobalState, now: i64) {
     let today = (now as u64) / SECONDS_PER_DAY;
 
-    if today > global_state.current_deposit_day {
+    if today != global_state.current_deposit_day {
         // New day: check if previous day was fully used
         let remaining = global_state.daily_deposit_cap
             .saturating_sub(global_state.daily_deposited);
