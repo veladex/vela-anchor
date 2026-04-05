@@ -286,15 +286,12 @@ pub(crate) fn add_team_reward_profit(
     Ok(())
 }
 
-/// Cross-week detection & refresh (逐周滚动版本)
+/// Cross-week detection & refresh (一步到位版本)
 ///
-/// If the current time has crossed into a new week, automatically loop through
-/// each skipped week to ensure correct forfeiture and pool rotation:
-/// 1. Add unclaimed rewards from the previous week to the root referrer's community_profit
-/// 2. Move current week data to the previous week
-/// 3. Reset current week data to zero
-/// 4. Advance current_week_number by one
-/// Repeats until caught up to the real current week.
+/// 不管隔了多少周，一次性处理：
+/// 1. previous 中未领取的奖励 → 转给 root（真正过期的部分）
+/// 2. current 移到 previous（保留最近一周的累积，确保用户可领取）
+/// 3. current 清零，周数直接跳到当前周
 pub(crate) fn maybe_refresh_week(
     global: &mut GlobalState,
     now: i64,
@@ -306,69 +303,54 @@ pub(crate) fn maybe_refresh_week(
         return Ok(()); // Same week, no refresh needed
     }
 
-    // 限制单次交易最多处理的跳周数，防止 CU 溢出
-    let weeks_to_process = (current_week - global.current_week_number).min(MAX_WEEKS_PER_REFRESH);
+    let weeks_skipped = current_week - global.current_week_number;
 
-    // 逐周处理每一个跨越的周
-    for _i in 0..weeks_to_process {
-        let processing_week = global.current_week_number + 1;
+    // === 步骤1: 处理 previous 中未领取的奖励 → root ===
+    let diamond_per_share = if DIAMOND_POOL_SHARES > 0 {
+        global.diamond_pool_previous / DIAMOND_POOL_SHARES
+    } else {
+        0
+    };
+    let gold_per_share = if GOLD_POOL_SHARES > 0 {
+        global.gold_pool_previous / GOLD_POOL_SHARES
+    } else {
+        0
+    };
 
-        // 1. Calculate unclaimed amount from the previous week
-        let diamond_per_share = if DIAMOND_POOL_SHARES > 0 {
-            global.diamond_pool_previous / DIAMOND_POOL_SHARES
-        } else {
-            0
-        };
-        let gold_per_share = if GOLD_POOL_SHARES > 0 {
-            global.gold_pool_previous / GOLD_POOL_SHARES
-        } else {
-            0
-        };
+    let diamond_claimed_total = diamond_per_share * global.diamond_pool_claimed_count as u64;
+    let gold_claimed_total = gold_per_share * global.gold_pool_claimed_count as u64;
 
-        let diamond_claimed_total = diamond_per_share * global.diamond_pool_claimed_count as u64;
-        let gold_claimed_total = gold_per_share * global.gold_pool_claimed_count as u64;
+    let diamond_unclaimed = global.diamond_pool_previous.saturating_sub(diamond_claimed_total);
+    let gold_unclaimed = global.gold_pool_previous.saturating_sub(gold_claimed_total);
 
-        let diamond_unclaimed = global.diamond_pool_previous.saturating_sub(diamond_claimed_total);
-        let gold_unclaimed = global.gold_pool_previous.saturating_sub(gold_claimed_total);
-
-        // 2. Add unclaimed amounts to the root referrer's team_reward_profit
-        let total_unclaimed = diamond_unclaimed.saturating_add(gold_unclaimed);
-        if total_unclaimed > 0 {
-            add_team_reward_profit(storage_accounts, ROOT_REFERRAL_ID, total_unclaimed)?;
-            msg!("Week {} unclaimed {} -> root", global.current_week_number, total_unclaimed);
-        }
-
-        // 3. Move current week to previous week
-        global.diamond_pool_previous = global.diamond_pool_current;
-        global.gold_pool_previous = global.gold_pool_current;
-
-        // 4. Reset current week to zero
-        global.diamond_pool_current = 0;
-        global.gold_pool_current = 0;
-        global.diamond_pool_claimed_count = 0;
-        global.gold_pool_claimed_count = 0;
-
-        // 5. Advance one week
-        global.current_week_number = processing_week;
-
-        emit!(NodePoolRefreshed {
-            week_number: processing_week,
-            diamond_unclaimed_to_root: diamond_unclaimed,
-            gold_unclaimed_to_root: gold_unclaimed,
-            diamond_new_pool: global.diamond_pool_previous,
-            gold_new_pool: global.gold_pool_previous,
-        });
-
-        // 优化：如果 current 和 previous 都为 0，剩余周无需逐一处理
-        if global.diamond_pool_current == 0
-            && global.gold_pool_current == 0
-            && global.diamond_pool_previous == 0
-            && global.gold_pool_previous == 0
-        {
-            global.current_week_number = current_week;
-            break;
-        }
+    let total_unclaimed = diamond_unclaimed.saturating_add(gold_unclaimed);
+    if total_unclaimed > 0 {
+        add_team_reward_profit(storage_accounts, ROOT_REFERRAL_ID, total_unclaimed)?;
+        msg!("Week {} unclaimed {} -> root (skipped {} weeks)",
+            global.current_week_number, total_unclaimed, weeks_skipped);
     }
+
+    // === 步骤2: current 移到 previous ===
+    global.diamond_pool_previous = global.diamond_pool_current;
+    global.gold_pool_previous = global.gold_pool_current;
+
+    // === 步骤3: 清零 current，重置领取计数 ===
+    global.diamond_pool_current = 0;
+    global.gold_pool_current = 0;
+    global.diamond_pool_claimed_count = 0;
+    global.gold_pool_claimed_count = 0;
+
+    // === 步骤4: 周数直接跳到当前周 ===
+    global.current_week_number = current_week;
+
+    emit!(NodePoolRefreshed {
+        week_number: current_week,
+        weeks_skipped,
+        diamond_unclaimed_to_root: diamond_unclaimed,
+        gold_unclaimed_to_root: gold_unclaimed,
+        diamond_new_pool: global.diamond_pool_previous,
+        gold_new_pool: global.gold_pool_previous,
+    });
 
     Ok(())
 }

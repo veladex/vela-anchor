@@ -150,6 +150,8 @@ pub struct TokensLockedEvent {
 pub struct NodePoolRefreshed {
     /// New week number
     pub week_number: u64,
+    /// Number of weeks skipped since last refresh
+    pub weeks_skipped: u64,
     /// Diamond pool unclaimed amount returned to root
     pub diamond_unclaimed_to_root: u64,
     /// Gold pool unclaimed amount returned to root

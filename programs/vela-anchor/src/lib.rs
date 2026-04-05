@@ -23,7 +23,7 @@ pub mod nft_saletime;
 use contexts::*;
 use structs::*;
 use global::*;
-declare_id!("7dcorXkE1kJJxvG8rQCLwnFnmdP9BxgGpts31aMAADam");
+declare_id!("FW6P7G9yPBqGAGsZ6Aa7upC9whF69QMH4ZJaBJjFsLVK");
 
 
 #[program]

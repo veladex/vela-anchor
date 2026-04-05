@@ -27,7 +27,7 @@ pub const SECONDS_PER_WEEK: u64 = SECONDS_PER_DAY * 7;
 // ============================================================================
 
 /// NFT authority address (hardcoded)
-pub const NFT_AUTHORITY_ADDRESS: &str = "F1w9GEWbFbUSPZqxi5yd7TVWzWvDcWQKvHyHLaSyS4XS";
+pub const NFT_AUTHORITY_ADDRESS: &str = "3e7udvTGp38kBLCWyBWsyWLk2CGGMY5HpdpLYeVU9Qs9";
 
 /// Parse NFT_AUTHORITY_ADDRESS to Pubkey
 pub fn nft_authority_pubkey() -> Pubkey {
@@ -304,9 +304,6 @@ pub const DIAMOND_POOL_SHARES: u64 = 600;
 pub const GOLD_POOL_SHARES: u64 = 12_000;
 
 // Note: SECONDS_PER_WEEK is defined at the top of the file, auto-derived from SECONDS_PER_DAY
-
-/// Max weeks to process in a single refresh (prevent CU overflow)
-pub const MAX_WEEKS_PER_REFRESH: u64 = 52;
 
 /// Week epoch offset (1970-01-05 Monday 00:00 UTC)
 pub const WEEK_EPOCH_OFFSET: i64 = 345600;
