@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-vela_anchor = "7dcorXkE1kJJxvG8rQCLwnFnmdP9BxgGpts31aMAADam"
+vela_anchor = "FW6P7G9yPBqGAGsZ6Aa7upC9whF69QMH4ZJaBJjFsLVK"
 
 [programs.devnet]
-vela_anchor = "7dcorXkE1kJJxvG8rQCLwnFnmdP9BxgGpts31aMAADam"
+vela_anchor = "FW6P7G9yPBqGAGsZ6Aa7upC9whF69QMH4ZJaBJjFsLVK"
 
 [registry]
 url = "https://api.apr.dev"
