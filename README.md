@@ -22,8 +22,8 @@ Interest is calculated hourly and can be claimed anytime. Your principal is safe
 
 Boost your earnings with exclusive Node NFTs:
 
-- **Diamond Node** (Limited to 500) – 20% interest boost
-- **Gold Node** (Limited to 10,000) – 10% interest boost
+- **Diamond Node** (Limited to 600) – 20% interest boost
+- **Gold Node** (Limited to 12000) – 10% interest boost
 
 Node NFTs are tradeable and transferable. When you bind an NFT to your account, you unlock enhanced yields and access to exclusive node pool rewards.
 
