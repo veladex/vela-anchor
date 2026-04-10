@@ -76,24 +76,58 @@ pub fn handler_claim_node_pool_reward(
         NodePoolError::InsufficientVaultBalance
     );
 
-    // ========== 6. Transfer from Vault to user ==========
+    // ========== 6. Calculate tax ==========
+    let tax_amount = u64::try_from(
+        (amount as u128)
+            .checked_mul(INTEREST_TAX_RATE as u128)
+            .ok_or(NodePoolError::ArithmeticOverflow)?
+            .checked_div(BASIS_POINTS as u128)
+            .ok_or(NodePoolError::ArithmeticOverflow)?
+    ).map_err(|_| NodePoolError::ArithmeticOverflow)?;
+
+    let user_receive = amount
+        .checked_sub(tax_amount)
+        .ok_or(NodePoolError::ArithmeticOverflow)?;
+
+    msg!("NodePoolReward tax: tax={}, user_receive={}", tax_amount, user_receive);
+
+    // ========== 7. Transfer tax to dead address ==========
     let token_mint = locked_vault.token_mint;
     let vault_bump = locked_vault.bump;
-    let signer_seeds: &[&[&[u8]]] = &[&[LOCKED_VAULT_SEED, token_mint.as_ref(), &[vault_bump]]];
 
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.vault_token_account.to_account_info(),
-        to: ctx.accounts.user_token_account.to_account_info(),
-        authority: ctx.accounts.locked_vault.to_account_info(),
-    };
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
-        cpi_accounts,
-        signer_seeds,
-    );
-    token::transfer(cpi_ctx, amount)?;
+    if tax_amount > 0 {
+        let signer_seeds: &[&[&[u8]]] = &[&[LOCKED_VAULT_SEED, token_mint.as_ref(), &[vault_bump]]];
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.dead_address_token_account.to_account_info(),
+            authority: ctx.accounts.locked_vault.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, tax_amount)?;
+        msg!("Transferred tax {} to dead address", tax_amount);
+    }
 
-    // ========== 7. Update state ==========
+    // ========== 8. Transfer remaining to user ==========
+    {
+        let signer_seeds: &[&[&[u8]]] = &[&[LOCKED_VAULT_SEED, token_mint.as_ref(), &[vault_bump]]];
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.user_token_account.to_account_info(),
+            authority: ctx.accounts.locked_vault.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, user_receive)?;
+    }
+
+    // ========== 9. Update state ==========
     nft_binding.last_pool_claim_week = previous_week;
 
     match node_type {

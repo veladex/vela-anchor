@@ -1325,6 +1325,14 @@ pub struct ClaimCommunityProfit<'info> {
     )]
     pub user_token_account: Account<'info, TokenAccount>,
 
+    /// Dead address token account (receives tax)
+    #[account(
+        mut,
+        constraint = dead_address_token_account.owner == dead_address_pubkey() @ StakeError::InvalidDeadAddress,
+        constraint = dead_address_token_account.mint == global_state.stake_token_mint @ StakeError::TokenMintMismatch
+    )]
+    pub dead_address_token_account: Account<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -1401,6 +1409,14 @@ pub struct ClaimNodePoolReward<'info> {
         associated_token::authority = user,
     )]
     pub user_token_account: Account<'info, TokenAccount>,
+
+    /// Dead address token account (receives tax)
+    #[account(
+        mut,
+        constraint = dead_address_token_account.owner == dead_address_pubkey() @ StakeError::InvalidDeadAddress,
+        constraint = dead_address_token_account.mint == global_state.stake_token_mint @ StakeError::TokenMintMismatch
+    )]
+    pub dead_address_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,

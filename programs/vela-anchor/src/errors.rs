@@ -206,6 +206,9 @@ pub enum NodePoolError {
 
     #[msg("Pool claimed count exceeded maximum shares")]
     ClaimedCountExceeded,
+
+    #[msg("Arithmetic overflow")]
+    ArithmeticOverflow,
 }
 
 // ============================================================================

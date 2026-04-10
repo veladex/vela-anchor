@@ -1267,24 +1267,58 @@ pub fn handler_claim_community_profit(
     msg!("ClaimCommunityProfit: referral_id={}, direct={}, team={}, total={}",
         referral_id, direct_profit, team_profit, total_profit);
 
-    // ========== 4. Transfer from locked_vault to user ==========
+    // ========== 4. Calculate tax ==========
+    let tax_amount = u64::try_from(
+        (total_profit as u128)
+            .checked_mul(INTEREST_TAX_RATE as u128)
+            .ok_or(StakeError::ArithmeticOverflow)?
+            .checked_div(BASIS_POINTS as u128)
+            .ok_or(StakeError::ArithmeticOverflow)?
+    ).map_err(|_| StakeError::ArithmeticOverflow)?;
+
+    let user_receive = total_profit
+        .checked_sub(tax_amount)
+        .ok_or(StakeError::ArithmeticOverflow)?;
+
+    msg!("CommunityProfit tax: tax={}, user_receive={}", tax_amount, user_receive);
+
+    // ========== 5. Transfer tax to dead address ==========
     let vault_bump = locked_vault.bump;
-    let signer_seeds: &[&[&[u8]]] = &[&[LOCKED_VAULT_SEED, token_mint.as_ref(), &[vault_bump]]];
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.vault_token_account.to_account_info(),
-        to: ctx.accounts.user_token_account.to_account_info(),
-        authority: ctx.accounts.locked_vault.to_account_info(),
-    };
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
-        cpi_accounts,
-        signer_seeds,
-    );
-    token::transfer(cpi_ctx, total_profit)?;
+    if tax_amount > 0 {
+        let signer_seeds: &[&[&[u8]]] = &[&[LOCKED_VAULT_SEED, token_mint.as_ref(), &[vault_bump]]];
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.dead_address_token_account.to_account_info(),
+            authority: ctx.accounts.locked_vault.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, tax_amount)?;
+        msg!("Transferred tax {} to dead address", tax_amount);
+    }
 
-    msg!("Transferred {} community profit to user", total_profit);
+    // ========== 6. Transfer remaining to user ==========
+    {
+        let signer_seeds: &[&[&[u8]]] = &[&[LOCKED_VAULT_SEED, token_mint.as_ref(), &[vault_bump]]];
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault_token_account.to_account_info(),
+            to: ctx.accounts.user_token_account.to_account_info(),
+            authority: ctx.accounts.locked_vault.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, user_receive)?;
+    }
 
-    // ========== 5. Reset both profit fields to zero ==========
+    msg!("Transferred {} community profit to user (tax: {})", user_receive, tax_amount);
+
+    // ========== 7. Reset both profit fields to zero ==========
     {
         let mut storage_data = storage_account.try_borrow_mut_data()?;
         let mut referral = zero_copy_storage::read_record(&storage_data, slot_index)?;

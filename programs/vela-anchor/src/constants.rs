@@ -10,7 +10,7 @@ use std::str::FromStr;
 // Test environment: 96   (1 day = 96 seconds, 1 week = 11.2 minutes)
 // Production environment: 86400 (1 day = 86400 seconds = 24 hours, real time)
 //
-pub const SECONDS_PER_DAY: u64 = 96;
+pub const SECONDS_PER_DAY: u64 = 86400;
 
 /// Seconds per hour (auto-derived from SECONDS_PER_DAY)
 /// Production: 86400 / 24 = 3600
