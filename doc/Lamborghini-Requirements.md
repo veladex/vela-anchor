@@ -169,13 +169,13 @@ Direct Referral: 5%
 
 | Level | Personal Staked VELA | Community Performance (Staked VELA) — downstream only, excluding self | Tier Differential Share (% of subordinate's performance taken by superior) | Same-Tier Reward (Extra share from same-level performance) |
 | ----- | ----- | ----- | ----- | ----- |
-| L1 | 0 | 200,000 | 10% | None |
-| L2 | 0 | 600,000 | 20% | None |
-| L3 | 100,000 | 3,000,000 | 30% | 2% |
-| L4 | 100,000 | 6,000,000 | 40% | 2% |
-| L5 | 200,000 | 16,000,000 | 50% | 2% |
-| L6 | 200,000 | 40,000,000 | 60% | 2% |
-| L7 | 300,000 | 100,000,000 | 70% | 2% |
+| L1 | 1,000 | 200,000 | 10% | None |
+| L2 | 1,000 | 600,000 | 20% | None |
+| L3 | 50,000 | 3,000,000 | 30% | 2% |
+| L4 | 50,000 | 6,000,000 | 40% | 2% |
+| L5 | 100,000 | 16,000,000 | 50% | 2% |
+| L6 | 100,000 | 40,000,000 | 60% | 2% |
+| L7 | 150,000 | 100,000,000 | 70% | 2% |
 
 Same-Tier Reward: 2% triggered by deposit interest (static). Formula = Personal claimed deposit earnings \* 2%
 
