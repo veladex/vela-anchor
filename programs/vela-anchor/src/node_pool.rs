@@ -173,6 +173,7 @@ pub fn handler_claim_node_pool_reward(
 }
 
 /// Query node pool status
+/// Simulates maybe_refresh_week locally to return accurate state
 pub fn handler_query_node_pool_status(
     ctx: Context<crate::contexts::QueryNodePoolStatus>,
 ) -> Result<NodePoolStatusResult> {
@@ -180,22 +181,33 @@ pub fn handler_query_node_pool_status(
     let now = Clock::get()?.unix_timestamp;
     let current_week = calculate_week_number(now);
 
-    // Calculate per-share amount
+    // Simulate maybe_refresh_week: compute effective values
+    let (effective_week, eff_diamond_prev, eff_gold_prev, eff_diamond_cur, eff_gold_cur, eff_diamond_claimed, eff_gold_claimed) =
+        if current_week > global.current_week_number {
+            // Week advanced: current -> previous, current zeroed, claimed counts reset
+            (current_week, global.diamond_pool_current, global.gold_pool_current, 0u64, 0u64, 0u16, 0u16)
+        } else {
+            (global.current_week_number, global.diamond_pool_previous, global.gold_pool_previous,
+             global.diamond_pool_current, global.gold_pool_current,
+             global.diamond_pool_claimed_count, global.gold_pool_claimed_count)
+        };
+
+    // Calculate per-share amount using effective values
     let diamond_per_share = if DIAMOND_POOL_SHARES > 0 {
-        global.diamond_pool_previous / DIAMOND_POOL_SHARES
+        eff_diamond_prev / DIAMOND_POOL_SHARES
     } else {
         0
     };
     let gold_per_share = if GOLD_POOL_SHARES > 0 {
-        global.gold_pool_previous / GOLD_POOL_SHARES
+        eff_gold_prev / GOLD_POOL_SHARES
     } else {
         0
     };
 
     // Check if user has already claimed
     let user_already_claimed = if let Some(ref binding) = ctx.accounts.nft_binding_state {
-        if global.current_week_number > 0 {
-            binding.last_pool_claim_week == global.current_week_number - 1
+        if effective_week > 0 {
+            binding.last_pool_claim_week == effective_week - 1
         } else {
             false
         }
@@ -205,12 +217,12 @@ pub fn handler_query_node_pool_status(
 
     Ok(NodePoolStatusResult {
         current_week_number: current_week,
-        diamond_pool_current: global.diamond_pool_current,
-        gold_pool_current: global.gold_pool_current,
-        diamond_pool_previous: global.diamond_pool_previous,
-        gold_pool_previous: global.gold_pool_previous,
-        diamond_pool_claimed_count: global.diamond_pool_claimed_count,
-        gold_pool_claimed_count: global.gold_pool_claimed_count,
+        diamond_pool_current: eff_diamond_cur,
+        gold_pool_current: eff_gold_cur,
+        diamond_pool_previous: eff_diamond_prev,
+        gold_pool_previous: eff_gold_prev,
+        diamond_pool_claimed_count: eff_diamond_claimed,
+        gold_pool_claimed_count: eff_gold_claimed,
         diamond_per_share,
         gold_per_share,
         user_already_claimed,
@@ -218,30 +230,44 @@ pub fn handler_query_node_pool_status(
 }
 
 /// Query node pool reward amount for a specific user (read-only)
+/// Simulates maybe_refresh_week locally to return accurate claimable state
 pub fn handler_query_node_pool_reward(
     ctx: Context<crate::contexts::QueryNodePoolReward>,
 ) -> Result<NodePoolRewardResult> {
     let global_state = &ctx.accounts.global_state;
     let nft_binding = &ctx.accounts.nft_binding_state;
+    let now = Clock::get()?.unix_timestamp;
+    let real_week = calculate_week_number(now);
 
-    // Calculate per-share amounts
+    // Simulate maybe_refresh_week: compute what previous pool would be after refresh
+    let (effective_week_number, effective_diamond_previous, effective_gold_previous) =
+        if real_week > global_state.current_week_number {
+            // Week has advanced but chain state not yet refreshed
+            // After refresh: current -> previous, current zeroed
+            (real_week, global_state.diamond_pool_current, global_state.gold_pool_current)
+        } else {
+            // Same week, chain state is up to date
+            (global_state.current_week_number, global_state.diamond_pool_previous, global_state.gold_pool_previous)
+        };
+
+    // Calculate per-share amounts using effective values
     let diamond_per_share = if DIAMOND_POOL_SHARES > 0 {
-        global_state.diamond_pool_previous / DIAMOND_POOL_SHARES
+        effective_diamond_previous / DIAMOND_POOL_SHARES
     } else {
         0
     };
     let gold_per_share = if GOLD_POOL_SHARES > 0 {
-        global_state.gold_pool_previous / GOLD_POOL_SHARES
+        effective_gold_previous / GOLD_POOL_SHARES
     } else {
         0
     };
 
     // Check if there is a claimable week
-    let (week_number, is_claimed, reward_amount) = if global_state.current_week_number == 0 {
+    let (week_number, is_claimed, reward_amount) = if effective_week_number == 0 {
         // No previous week data
         (0, false, 0)
     } else {
-        let previous_week = global_state.current_week_number - 1;
+        let previous_week = effective_week_number - 1;
         let is_claimed = nft_binding.last_pool_claim_week == previous_week;
 
         if is_claimed {
