@@ -4,6 +4,8 @@
 
 VELA is a Solana-native structured financial protocol that revolutionizes DeFi by separating yield generation from price risk. We offer predictable, hedgeable, and risk-controllable returns that empower users to maximize their crypto assets with confidence.
 
+📄 **Fairness & Security Whitepaper**: [English](doc/VELA_Whitepaper_en.md) | [中文](doc/VELA_Whitepaper_zh.md) | [Español](doc/VELA_Whitepaper_es.md) | [العربية](doc/VELA_Whitepaper_ar.md) | [한국어](doc/VELA_Whitepaper_ko.md)
+
 ---
 
 ## ✨ Core Features
@@ -100,3 +102,4 @@ Smart economic design for sustainable growth:
 **VELA Protocol** – Where structured finance meets decentralized innovation.
 
 *Built on Solana for speed, security, and scalability.*
+
