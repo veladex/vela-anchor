@@ -419,6 +419,8 @@ pub struct CurrentRatesResult {
     pub rate_30d: u64,
     /// 90-day lock daily interest rate (RATE_BASIS_POINTS precision)
     pub rate_90d: u64,
+    /// 365-day lock daily interest rate (RATE_BASIS_POINTS precision)
+    pub rate_365d: u64,
 }
 
 // ============================================================================

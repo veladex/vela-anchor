@@ -56,12 +56,13 @@ pub fn calc_current_daily_rate(base_rate_bps: u64, reduction_count: u16) -> u64 
     rate.max(1)
 }
 
-/// Return the current daily rates for all three tiers (RATE_BASIS_POINTS precision, 1_000_000 = 100%)
-pub fn get_current_rates(reduction_count: u16) -> (u64, u64, u64) {
-    let rate_7d  = calc_current_daily_rate(DAILY_RATE_7_DAYS, reduction_count);
-    let rate_30d = calc_current_daily_rate(DAILY_RATE_30_DAYS, reduction_count);
-    let rate_90d = calc_current_daily_rate(DAILY_RATE_90_DAYS, reduction_count);
-    (rate_7d, rate_30d, rate_90d)
+/// Return the current daily rates for all four tiers (RATE_BASIS_POINTS precision, 1_000_000 = 100%)
+pub fn get_current_rates(reduction_count: u16) -> (u64, u64, u64, u64) {
+    let rate_7d   = calc_current_daily_rate(DAILY_RATE_7_DAYS, reduction_count);
+    let rate_30d  = calc_current_daily_rate(DAILY_RATE_30_DAYS, reduction_count);
+    let rate_90d  = calc_current_daily_rate(DAILY_RATE_90_DAYS, reduction_count);
+    let rate_365d = calc_current_daily_rate(DAILY_RATE_365_DAYS, reduction_count);
+    (rate_7d, rate_30d, rate_90d, rate_365d)
 }
 
 /// Get per-address staking cap based on total network staked amount
@@ -190,7 +191,8 @@ pub fn handler_create_stake(
     let (period_seconds, initial_daily_rate) = match period_type {
         STAKE_PERIOD_7_DAYS  => (PERIOD_7_DAYS,  calc_current_daily_rate(DAILY_RATE_7_DAYS, reduction_count)),
         STAKE_PERIOD_30_DAYS => (PERIOD_30_DAYS, calc_current_daily_rate(DAILY_RATE_30_DAYS, reduction_count)),
-        STAKE_PERIOD_90_DAYS => (PERIOD_90_DAYS, calc_current_daily_rate(DAILY_RATE_90_DAYS, reduction_count)),
+        STAKE_PERIOD_90_DAYS  => (PERIOD_90_DAYS,  calc_current_daily_rate(DAILY_RATE_90_DAYS, reduction_count)),
+        STAKE_PERIOD_365_DAYS => (PERIOD_365_DAYS, calc_current_daily_rate(DAILY_RATE_365_DAYS, reduction_count)),
         _ => return Err(StakeError::InvalidPeriodType.into()),
     };
 
@@ -1341,16 +1343,16 @@ pub fn handler_claim_community_profit(
     Ok(())
 }
 
-/// Query the current daily rates for the three lock-up tiers
+/// Query the current daily rates for the four lock-up tiers
 pub fn handler_query_current_rates(
     ctx: Context<QueryCurrentRates>,
 ) -> Result<CurrentRatesResult> {
     let global_state = &ctx.accounts.global_state;
     let reduction_count = calc_reduction_count(global_state.total_output);
-    let (rate_7d, rate_30d, rate_90d) = get_current_rates(reduction_count);
+    let (rate_7d, rate_30d, rate_90d, rate_365d) = get_current_rates(reduction_count);
 
-    msg!("QueryCurrentRates: total_output={}, reduction_count={}, rate_7d={}, rate_30d={}, rate_90d={}",
-        global_state.total_output, reduction_count, rate_7d, rate_30d, rate_90d);
+    msg!("QueryCurrentRates: total_output={}, reduction_count={}, rate_7d={}, rate_30d={}, rate_90d={}, rate_365d={}",
+        global_state.total_output, reduction_count, rate_7d, rate_30d, rate_90d, rate_365d);
 
     Ok(CurrentRatesResult {
         total_output: global_state.total_output,
@@ -1358,5 +1360,6 @@ pub fn handler_query_current_rates(
         rate_7d,
         rate_30d,
         rate_90d,
+        rate_365d,
     })
 }

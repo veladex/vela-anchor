@@ -253,7 +253,7 @@ pub mod vela_anchor {
         stake_token::handler_claim_community_profit(ctx)
     }
 
-    /// Query current lock-up interest rates for all three tiers (read-only, affected by halving mechanism)
+    /// Query current lock-up interest rates for all four tiers (read-only, affected by halving mechanism)
     pub fn query_current_rates(
         ctx: Context<QueryCurrentRates>,
     ) -> Result<CurrentRatesResult> {

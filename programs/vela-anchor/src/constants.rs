@@ -81,11 +81,13 @@ pub const AMOUNT_DECIMALS: u64 = 1_000_000_000;
 pub const STAKE_PERIOD_7_DAYS: u8 = 1;
 pub const STAKE_PERIOD_30_DAYS: u8 = 2;
 pub const STAKE_PERIOD_90_DAYS: u8 = 3;
+pub const STAKE_PERIOD_365_DAYS: u8 = 4;
 
 /// Staking period in seconds
 pub const PERIOD_7_DAYS: u64 = 7 * SECONDS_PER_DAY;   // 7 days in seconds
 pub const PERIOD_30_DAYS: u64 = 30 * SECONDS_PER_DAY; // 30 days in seconds
 pub const PERIOD_90_DAYS: u64 = 90 * SECONDS_PER_DAY; // 90 days in seconds
+pub const PERIOD_365_DAYS: u64 = 365 * SECONDS_PER_DAY; // 365 days in seconds
 
 /// Dedicated basis point denominator for daily interest rate: 1_000_000 = 100%
 /// Separated from BASIS_POINTS(10000), used only for daily rate calculations
@@ -97,6 +99,7 @@ pub const RATE_BASIS_POINTS: u64 = 1_000_000;
 pub const DAILY_RATE_7_DAYS: u64 = 5_000;    // 0.5%
 pub const DAILY_RATE_30_DAYS: u64 = 7_000;   // 0.7%
 pub const DAILY_RATE_90_DAYS: u64 = 10_000;  // 1.0%
+pub const DAILY_RATE_365_DAYS: u64 = 12_000; // 1.2%
 
 /// Basis point denominator (used for NFT boost / tax rate / community rewards / reduction ratios)
 pub const BASIS_POINTS: u64 = 10_000;
