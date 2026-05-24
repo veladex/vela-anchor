@@ -71,8 +71,8 @@ pub const MAX_STAKES_PER_USER: usize = 20;
 /// Minimum stake amount (1,000 tokens, assuming 9 decimal places)
 pub const MIN_STAKE_AMOUNT: u64 = 1_000_000_000_000;
 
-/// Maximum stake amount (50,000 tokens, assuming 9 decimal places)
-pub const MAX_STAKE_AMOUNT: u64 = 50_000_000_000_000;
+/// Maximum stake amount (200,000 tokens, assuming 9 decimal places)
+pub const MAX_STAKE_AMOUNT: u64 = 200_000_000_000_000;
 
 /// Token decimals (10^9 for amount validation)
 pub const AMOUNT_DECIMALS: u64 = 1_000_000_000;
@@ -81,10 +81,12 @@ pub const AMOUNT_DECIMALS: u64 = 1_000_000_000;
 pub const STAKE_PERIOD_7_DAYS: u8 = 1;
 pub const STAKE_PERIOD_30_DAYS: u8 = 2;
 pub const STAKE_PERIOD_90_DAYS: u8 = 3;
+pub const STAKE_PERIOD_180_DAYS: u8 = 4;
 /// Staking period in seconds
 pub const PERIOD_7_DAYS: u64 = 7 * SECONDS_PER_DAY;   // 7 days in seconds
 pub const PERIOD_30_DAYS: u64 = 30 * SECONDS_PER_DAY; // 30 days in seconds
 pub const PERIOD_90_DAYS: u64 = 90 * SECONDS_PER_DAY; // 90 days in seconds
+pub const PERIOD_180_DAYS: u64 = 180 * SECONDS_PER_DAY; // 180 days in seconds
 
 /// Dedicated basis point denominator for daily interest rate: 1_000_000 = 100%
 /// Separated from BASIS_POINTS(10000), used only for daily rate calculations
@@ -96,6 +98,7 @@ pub const RATE_BASIS_POINTS: u64 = 1_000_000;
 pub const DAILY_RATE_7_DAYS: u64 = 5_000;    // 0.5%
 pub const DAILY_RATE_30_DAYS: u64 = 7_000;   // 0.7%
 pub const DAILY_RATE_90_DAYS: u64 = 10_000;  // 1.0%
+pub const DAILY_RATE_180_DAYS: u64 = 12_000; // 1.2%
 
 /// Basis point denominator (used for NFT boost / tax rate / community rewards / reduction ratios)
 pub const BASIS_POINTS: u64 = 10_000;
@@ -271,20 +274,20 @@ pub const DAILY_CAP_GROWTH_BPS: u64 = 11000; // 110% = 11000 / 10000
 /// Cap exhaustion threshold: considered full when less than 1000 tokens remain
 pub const DAILY_CAP_EXHAUST_THRESHOLD: u64 = 1_000_000_000_000; // 1000 * 10^9
 
-/// Per-address base staking cap: 50k tokens
-pub const USER_STAKE_CAP_BASE: u64 = 50_000_000_000_000; // 50k * 10^9
+/// Per-address base staking cap: 400k tokens
+pub const USER_STAKE_CAP_BASE: u64 = 400_000_000_000_000; // 400k * 10^9
 
-/// Total staked threshold tier 1: 45 million tokens -> per-address cap increases to 100k
+/// Total staked threshold tier 1: 45 million tokens -> per-address cap increases to 400k
 pub const TOTAL_STAKED_TIER1: u64 = 45_000_000_000_000_000; // 45M * 10^9
 
-/// Per-address staking cap (tier 1): 100k tokens
-pub const USER_STAKE_CAP_TIER1: u64 = 100_000_000_000_000; // 100k * 10^9
+/// Per-address staking cap (tier 1): 400k tokens
+pub const USER_STAKE_CAP_TIER1: u64 = 400_000_000_000_000; // 400k * 10^9
 
-/// Total staked threshold tier 2: 90 million tokens -> per-address cap increases to 150k
+/// Total staked threshold tier 2: 90 million tokens -> per-address cap increases to 400k
 pub const TOTAL_STAKED_TIER2: u64 = 90_000_000_000_000_000; // 90M * 10^9
 
-/// Per-address staking cap (tier 2): 150k tokens
-pub const USER_STAKE_CAP_TIER2: u64 = 150_000_000_000_000; // 150k * 10^9
+/// Per-address staking cap (tier 2): 400k tokens
+pub const USER_STAKE_CAP_TIER2: u64 = 400_000_000_000_000; // 400k * 10^9
 
 // ============================================================================
 // Node Pool related constants

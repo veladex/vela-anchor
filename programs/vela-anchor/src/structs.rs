@@ -419,6 +419,8 @@ pub struct CurrentRatesResult {
     pub rate_30d: u64,
     /// 90-day lock daily interest rate (RATE_BASIS_POINTS precision)
     pub rate_90d: u64,
+    /// 180-day lock daily interest rate (RATE_BASIS_POINTS precision)
+    pub rate_180d: u64,
 }
 
 // ============================================================================
@@ -499,7 +501,7 @@ impl GlobalState {
 pub struct StakeOrder {
     /// Staking amount (in smallest unit)
     pub amount: u64,                    // 8 bytes
-    /// Staking period type (1=7 days, 2=30 days, 3=90 days)
+    /// Staking period type (1=7 days, 2=30 days, 3=90 days, 4=180 days)
     pub period_type: u8,                // 1 byte
     /// Staking start timestamp
     pub start_time: i64,                // 8 bytes
@@ -516,7 +518,7 @@ pub struct StakeOrder {
     /// Order status (0=empty, 1=active, 2=completed, 3=cancelled)
     pub status: u8,                     // 1 byte
     /// Initial daily interest rate at order creation time (in RATE_BASIS_POINTS, 1_000_000 = 100%)
-    /// e.g. 7-day: 5000 (0.5%), 30-day: 7000 (0.7%), 90-day: 10000 (1.0%)
+    /// e.g. 7-day: 5000 (0.5%), 30-day: 7000 (0.7%), 90-day: 10000 (1.0%), 180-day: 12000 (1.2%)
     /// Rate is snapshot at stake creation; existing orders are NOT affected by subsequent reductions.
     pub initial_daily_rate: u64,        // 8 bytes
     /// Reserved field (for alignment)
